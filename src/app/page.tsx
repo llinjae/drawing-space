@@ -86,13 +86,18 @@ const Canvas = () => {
     ctx.fill();
     ctx.stroke();
 
-    const centroid = polygon.points.reduce((acc, [x, y]) => {
-      acc.x += x;
-      acc.y += y;
-      return acc;
-    }, { x: 0, y: 0 });
-    centroid.x = (centroid.x / polygon.points.length) * img.current.width;
-    centroid.y = (centroid.y / polygon.points.length) * img.current.height;
+    const avgX = polygon.points.reduce((acc, [x, _]) => acc + x, 0) / polygon.points.length;
+    const avgY = polygon.points.reduce((acc, [_, y]) => acc + y, 0) / polygon.points.length;
+
+    const minX = Math.min(...polygon.points.map(([x, _]) => x));
+    const maxX = Math.max(...polygon.points.map(([x, _]) => x));
+    const minY = Math.min(...polygon.points.map(([_, y]) => y));
+    const maxY = Math.max(...polygon.points.map(([_, y]) => y));
+
+    const centroid = {
+      x: (minX + maxX) / 2 * img.current.width,
+      y: (minY + maxY) / 2 * img.current.height,
+    };
   
     if (polygon.tag || polygon.description) {
       ctx.font = '16px Arial';
@@ -364,6 +369,7 @@ const Canvas = () => {
     const loadedPolygons = Object.values(jsonData).map((item, index) => {
       const itemStr = typeof item === 'string' ? item.trim() : JSON.stringify(item).trim();
       const parts = itemStr.split(' ');
+      if (parseInt(parts[0]) === 0) return;
       const labelIndex = index;
       const predictionValue = parseFloat(parts[parts.length - 1]);
       const points = parts
@@ -376,7 +382,7 @@ const Canvas = () => {
       return { labelIndex, points, prediction: predictionValue, color, isVisible: true };
     });
     setLastLabelIndex(loadedPolygons.length)
-    setPolygons(loadedPolygons);
+    setPolygons(loadedPolygons.filter(polygon => polygon !== undefined));
   };
 
   const handleDeletePolygon = () => {
