@@ -36,7 +36,22 @@ const Canvas = () => {
     if (!isVisible) {
       setSelectedPolygonIndex('None');
     }
-  }, [predictionRange, polygons, selectedPolygonIndex]);0
+  }, [predictionRange, polygons, selectedPolygonIndex]);
+
+  const findCentroid = (points) => {
+    const xCoords = points.map(point => point[0]);
+    const yCoords = points.map(point => point[1]);
+  
+    const minX = Math.min(...xCoords);
+    const maxX = Math.max(...xCoords);
+    const minY = Math.min(...yCoords);
+    const maxY = Math.max(...yCoords);
+  
+    return {
+      x: (minX + maxX) / 2,
+      y: (minY + maxY) / 2
+    };
+  };
 
   const getColorForPolygon = useCallback((labelIndex) => {
     const colors = [
@@ -86,19 +101,8 @@ const Canvas = () => {
     ctx.fill();
     ctx.stroke();
 
-    const avgX = polygon.points.reduce((acc, [x, _]) => acc + x, 0) / polygon.points.length;
-    const avgY = polygon.points.reduce((acc, [_, y]) => acc + y, 0) / polygon.points.length;
+    const centroid = findCentroid(polygon.points.map(([x, y]) => [x * img.current.width, y * img.current.height]));
 
-    const minX = Math.min(...polygon.points.map(([x, _]) => x));
-    const maxX = Math.max(...polygon.points.map(([x, _]) => x));
-    const minY = Math.min(...polygon.points.map(([_, y]) => y));
-    const maxY = Math.max(...polygon.points.map(([_, y]) => y));
-
-    const centroid = {
-      x: (minX + maxX) / 2 * img.current.width,
-      y: (minY + maxY) / 2 * img.current.height,
-    };
-  
     if (polygon.tag || polygon.description) {
       ctx.font = '16px Arial';
       ctx.fillStyle = 'black';
@@ -197,7 +201,6 @@ const Canvas = () => {
       setPolygons(prev => [...prev, newPolygon]);
       setCurrentPolygon([]);
     }
-    console.log(currentPolygon);
     
     let foundPolygonIndex = null;
     polygons.forEach((polygon, index) => {
