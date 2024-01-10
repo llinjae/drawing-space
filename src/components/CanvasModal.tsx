@@ -29,7 +29,8 @@ const photoMountStyle = css`
   overflow: hidden;
 `;
 
-const CanvasModal = ({ modalPos, onDelete, onModalInputUpdate, setShowModal, currentData }) => {
+const CanvasModal = ({ modalPos, onDelete, onModalInputUpdate, setShowModal, currentData, onPhotoUpload }) => {
+  const photoRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef();
   const [modalInputValue, setModalInputValue] = useState({ tag: '', description: '' })
   const [photoMounts, setPhotoMounts] = useState([]);
@@ -61,8 +62,9 @@ const CanvasModal = ({ modalPos, onDelete, onModalInputUpdate, setShowModal, cur
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [setShowModal]);
 
-  const handleAddPhotoMount = (newPhotoMount) => {
-    setPhotoMounts([...photoMounts, newPhotoMount]);
+  const handleAddPhotoMount = (photo) => {
+    console.log(photo)
+    onPhotoUpload(photo);
   };
 
   return (
@@ -82,26 +84,23 @@ const CanvasModal = ({ modalPos, onDelete, onModalInputUpdate, setShowModal, cur
         placeholder="상세 설명을 추가해주세요."
       />
       <div>
-      {/* <div css={photoMountsContainerStyle}>
-        {photoMounts.map((mount, index) => (
-          <div key={index} css={photoMountStyle}>
-            <img src={mount.imgSrc} alt={`Mount ${index}`} />
-          </div>
-        ))}
-      </div>
-
       <input
+        ref={photoRef}
+        style={{ display: 'none' }}
         type="file"
         onChange={(e) => {
           const file = e.target.files[0];
-          const newPhotoMount = {
-            imgSrc: URL.createObjectURL(file),
-          };
-          handleAddPhotoMount(newPhotoMount);
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = (e) => {
+            if (reader.readyState === reader.DONE) handleAddPhotoMount(e.target.result);
+          }
         }}
-      /> */}
+      />
     </div>
-      <button onClick={() => {}}>사진대지 추가</button>
+      <button onClick={() => photoRef.current?.click()}>사진대지 추가</button>
       <button onClick={() => onModalInputUpdate(modalInputValue)}>확인</button>
       <button onClick={onDelete}>삭제</button>
     </div>

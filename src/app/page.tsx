@@ -20,6 +20,8 @@ const Canvas = () => {
   const [modalPos, setModalPos] = useState({ x: 0, y: 0 });
   const [modalPolygonIndex, setModalPolygonIndex] = useState(null);
   const [hoveredPolygonIndex, setHoveredPolygonIndex] = useState(null);
+  const [photos, setPhotos] = useState({});
+  const [lastLabelIndex, setLastLabelIndex] = useState(0);
   
   const canvasRef = useRef(null);
   const dragStart = useRef({ x: 0, y: 0 });
@@ -91,8 +93,8 @@ const Canvas = () => {
       acc.y += y;
       return acc;
     }, { x: 0, y: 0 });
-    centroid.x = (centroid.x / polygon.points.length) * img.current.width * scaleFactor + startPos.x;
-    centroid.y = (centroid.y / polygon.points.length) * img.current.height * scaleFactor + startPos.y;
+    centroid.x = (centroid.x / polygon.points.length) * img.current.width;
+    centroid.y = (centroid.y / polygon.points.length) * img.current.height;
   
     if (polygon.tag || polygon.description) {
       ctx.font = '16px Arial';
@@ -120,7 +122,7 @@ const Canvas = () => {
 
   const drawImageAndPolygons = useCallback(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     ctx.translate(startPos.x, startPos.y);
@@ -130,8 +132,9 @@ const Canvas = () => {
     // polygons.forEach(polygon => drawPolygon(polygon, ctx));
     polygons.forEach(polygon => {
       if(polygon.prediction >= predictionRange) {
+        polygon.isVisible = true;
         drawPolygon(polygon, ctx);
-      }
+      } else polygon.isVisible = false;
     });
     drawCurrentPolygon(ctx);
 
@@ -208,12 +211,13 @@ const Canvas = () => {
 
     if (currentPolygon.length > 2 && distance < completionThreshold) {
       const newPolygon = {
-        labelIndex: 12,
+        labelIndex: lastLabelIndex,
         // points: [...currentPolygon, currentPolygon[0]],
         points: [...currentPolygon, [x, y]],
         prediction: 0.95,
         color: getColorForPolygon(12)
       };
+      setLastLabelIndex(prev => prev + 1);
       setPolygons(prev => [...prev, newPolygon]);
       setCurrentPolygon([]);
     }
@@ -244,8 +248,8 @@ const Canvas = () => {
     });
 
     const rect = canvasRef.current.getBoundingClientRect();
-    const mouseX = (e.clientX - rect.left - startPos.x) / scaleFactor;
-    const mouseY = (e.clientY - rect.top - startPos.y) / scaleFactor;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
 
     let foundPolygonIndex = null;
     polygons.forEach((polygon, index) => {
@@ -285,7 +289,7 @@ const Canvas = () => {
     };
     
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const isInPath = ctx.isPointInPath(mouseX, mouseY);
+    const isInPath = ctx.isPointInPath(mouseX, mouseY) && polygon.isVisible;
     
     ctx.restore();
     return isInPath;
@@ -315,7 +319,9 @@ const Canvas = () => {
       }
     }
   }, [polygons, isWheelDown]);
-  
+
+  console.log(polygons);
+
  const handleMouseMove = useCallback((e) => {
     if (isWheelDown) {
       const newOffset = {
@@ -354,6 +360,11 @@ const Canvas = () => {
 
   const handleWheel = (e) => {
     if (!isWheelDown) {
+      const newOffset = {
+        x: startPos.x,
+        y: startPos.y,
+      };
+      setStartPos(newOffset);
       const delta = Math.sign(e.deltaY);
       setScaleFactor(prevScale => {
         let newScale = delta > 0 ? prevScale + 0.1 : Math.max(prevScale - 0.1, 0.1);
@@ -379,11 +390,10 @@ const Canvas = () => {
 
   const processFileContent = (content) => {
     const jsonData = JSON.parse(content);
-    const loadedPolygons = Object.values(jsonData).map(item => {
+    const loadedPolygons = Object.values(jsonData).map((item, index) => {
       const itemStr = typeof item === 'string' ? item.trim() : JSON.stringify(item).trim();
-
       const parts = itemStr.split(' ');
-      const labelIndex = parseInt(parts[0], 10);
+      const labelIndex = index;
       const predictionValue = parseFloat(parts[parts.length - 1]);
       const points = parts
         .slice(1, -1)
@@ -392,8 +402,9 @@ const Canvas = () => {
         )
         .filter(point => point);
       const color = getColorForPolygon(labelIndex);
-      return { labelIndex, points, prediction: predictionValue, color };
+      return { labelIndex, points, prediction: predictionValue, color, isVisible: true };
     });
+    setLastLabelIndex(loadedPolygons.length)
     setPolygons(loadedPolygons);
   };
 
@@ -417,6 +428,21 @@ const Canvas = () => {
     }
     setShowModal(false);
   };
+
+  const onPhotoUpload = (photo) => {
+    if (isNaN(modalPolygonIndex)) return;
+    setPhotos(prev => ({
+      ...prev,
+      [modalPolygonIndex]: photo
+    }));
+    setShowModal(false);
+    // const sortedPoints = polygons[modalPolygonIndex].points.toSorted((a, b) => a[0] - b[0])
+    // const x = (sortedPoints[0][0] + sortedPoints.at(-1)[0]) / 2 * img.current.width - 10;
+    // const y = (sortedPoints[0][1] + sortedPoints.at(-1)[1]) / 2 * img.current.height - 10;
+    // console.log(x, y);
+    // canvasRef.current.getContext('2d').fillRect(x, y, 20, 20);
+  }
+
 
   return (
     <div>
@@ -448,11 +474,13 @@ const Canvas = () => {
           onModalInputUpdate={handleModalInputUpdate}
           setShowModal={setShowModal}
           currentData={polygons[modalPolygonIndex]}
+          onPhotoUpload={onPhotoUpload}
         />
       )}
       <p>선택된 폴리곤 라벨 인덱스: <span>{selectedPolygonIndex}</span></p>
       <button onClick={() => setScaleFactor(scaleFactor + 0.1)}>확대</button>
       <button onClick={() => setScaleFactor(scaleFactor - 0.1)}>축소</button>
+      {photos[modalPolygonIndex] && <img src={photos[modalPolygonIndex]} alt="사진" />}
     </div>
   );
 }
