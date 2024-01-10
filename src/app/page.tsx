@@ -5,8 +5,6 @@ import CanvasModal from '@/components/CanvasModal';
 import { css } from '@emotion/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-
-
 const Canvas = () => {
   const [polygons, setPolygons] = useState([]);
   const [selectedPolygonIndex, setSelectedPolygonIndex] = useState('None');
@@ -147,47 +145,20 @@ const Canvas = () => {
     // });
 
     ctx.restore();
-  }, [polygons, drawPolygon, startPos, scaleFactor]);
+  }, [polygons, drawPolygon, drawCurrentPolygon, startPos, scaleFactor]);
 
   useEffect(() => {
-    img.current.src = '/test58.jpg';
-    img.current.onload = () => {
-      drawImageAndPolygons();
-    };
+    if (!img.current.src) {
+      img.current.src = '/test58.jpg';
+      img.current.onload = () => {
+        drawImageAndPolygons();
+      };
+    }
   }, [drawImageAndPolygons]);
 
   useEffect(() => {
     drawImageAndPolygons();
   }, [predictionRange, drawImageAndPolygons]);
-
-  // const isNearStartPoint = (point, startPoint) => {
-  //   const distance = Math.sqrt(Math.pow(point[0] - startPoint[0], 2) + Math.pow(point[1] - startPoint[1], 2));
-  //   return distance < 0.01;
-  // };
-
-  // const drawCurrentPolygonWithNewPoint = useCallback((newPoint) => {
-  //   const canvas = canvasRef.current;
-  //   const ctx = canvas.getContext('2d');
-  //   drawCurrentPolygon(ctx);
-
-  //   if (currentPolygon.length > 0) {
-  //     ctx.beginPath();
-  //     currentPolygon.forEach((point, index) => {
-  //       const adjustedX = point[0] * canvas.width;
-  //       const adjustedY = point[1] * canvas.height;
-
-  //       if (index === 0) {
-  //         ctx.moveTo(adjustedX, adjustedY);
-  //       } else {
-  //         ctx.lineTo(adjustedX, adjustedY);
-  //       }
-
-  //       console.log(adjustedX, adjustedY);
-  //     });
-  //     ctx.lineTo(newPoint[0] * canvas.width, newPoint[1] * canvas.height);
-  //     ctx.stroke();
-  //   }
-  // }, [currentPolygon, drawCurrentPolygon]);
 
   const distanceBetween = (x1, y1, x2, y2) => {
     return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
@@ -209,10 +180,10 @@ const Canvas = () => {
 
     setCurrentPolygon(prev => [...prev, [x, y]]);
 
+    
     if (currentPolygon.length > 2 && distance < completionThreshold) {
       const newPolygon = {
         labelIndex: lastLabelIndex,
-        // points: [...currentPolygon, currentPolygon[0]],
         points: [...currentPolygon, [x, y]],
         prediction: 0.95,
         color: getColorForPolygon(12)
@@ -221,7 +192,8 @@ const Canvas = () => {
       setPolygons(prev => [...prev, newPolygon]);
       setCurrentPolygon([]);
     }
-
+    console.log(currentPolygon);
+    
     let foundPolygonIndex = null;
     polygons.forEach((polygon, index) => {
       if (polygon.prediction >= predictionRange) {
@@ -230,16 +202,18 @@ const Canvas = () => {
     });
 
     setSelectedPolygonIndex(foundPolygonIndex !== null ? foundPolygonIndex : 'None');
-
   },[showModal, currentPolygon, polygons, startPos, scaleFactor, img]);
 
-  const handleCanvasRightClick = (e) => {
+  const handleCanvasRightClick = useCallback((e) => {
     e.preventDefault();
 
     if (currentPolygon.length > 0) {
       setCurrentPolygon([]);
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      drawImageAndPolygons(ctx);
       return;
-    }
+    } 
 
     setShowModal(true);
     setModalPos({
@@ -255,7 +229,6 @@ const Canvas = () => {
     polygons.forEach((polygon, index) => {
       if (isMouseInPolygon(mouseX, mouseY, polygon)) {
         foundPolygonIndex = index;
-        setModalPolygonIndex(index);
       }
     });
     setModalPolygonIndex(foundPolygonIndex);
@@ -265,7 +238,7 @@ const Canvas = () => {
     } else {
       setCurrentPolygon([]);
     }
-  };
+  }, [currentPolygon, polygons, startPos, scaleFactor, img, drawImageAndPolygons]);
 
   const isMouseInPolygon = useCallback((mouseX, mouseY, polygon) => {
     const canvas = canvasRef.current;
@@ -319,8 +292,6 @@ const Canvas = () => {
       }
     }
   }, [polygons, isWheelDown]);
-
-  console.log(polygons);
 
  const handleMouseMove = useCallback((e) => {
     if (isWheelDown) {
@@ -442,7 +413,6 @@ const Canvas = () => {
     // console.log(x, y);
     // canvasRef.current.getContext('2d').fillRect(x, y, 20, 20);
   }
-
 
   return (
     <div>

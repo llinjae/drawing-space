@@ -33,7 +33,6 @@ const CanvasModal = ({ modalPos, onDelete, onModalInputUpdate, setShowModal, cur
   const photoRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef();
   const [modalInputValue, setModalInputValue] = useState({ tag: '', description: '' })
-  const [photoMounts, setPhotoMounts] = useState([]);
   
   useEffect(() => {
     if (currentData) {
@@ -63,7 +62,6 @@ const CanvasModal = ({ modalPos, onDelete, onModalInputUpdate, setShowModal, cur
   }, [setShowModal]);
 
   const handleAddPhotoMount = (photo) => {
-    console.log(photo)
     onPhotoUpload(photo);
   };
 
