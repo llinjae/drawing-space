@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 "use client";
 
-import { css } from '@emotion/react';
-import React, { useEffect, useRef, useState } from 'react';
+import { css } from "@emotion/react";
+import React, { useEffect, useRef, useState } from "react";
 
 const ModalStyle = (modalPos) => css`
   position: absolute;
@@ -32,23 +32,23 @@ const photoMountStyle = css`
 const CanvasModal = ({ modalPos, onDelete, onModalInputUpdate, setShowModal, currentData, onPhotoUpload }) => {
   const photoRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef();
-  const [modalInputValue, setModalInputValue] = useState({ tag: '', description: '' })
-  
+  const [modalInputValue, setModalInputValue] = useState({ tag: "", description: "" });
+
   useEffect(() => {
     if (currentData) {
-      setModalInputValue({ 
-        tag: currentData.tag || '', 
-        description: currentData.description || '' 
+      setModalInputValue({
+        tag: currentData.tag || "",
+        description: currentData.description || "",
       });
     } else {
-      setModalInputValue({ tag: '', description: '' });
+      setModalInputValue({ tag: "", description: "" });
     }
   }, [currentData]);
 
   const handleChangeModalForm = (e) => {
     const { name, value } = e.target;
-    setModalInputValue(prevState => ({ ...prevState, [name]: value }));
-  }
+    setModalInputValue((prevState) => ({ ...prevState, [name]: value }));
+  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -67,14 +67,14 @@ const CanvasModal = ({ modalPos, onDelete, onModalInputUpdate, setShowModal, cur
 
   return (
     <div ref={modalRef} css={[ModalStyle(modalPos)]}>
-      <input 
+      <input
         type="text"
         name="tag"
         value={modalInputValue.tag}
         onChange={handleChangeModalForm}
         placeholder="태그를 입력해주세요."
       />
-      <input 
+      <input
         type="text"
         name="description"
         value={modalInputValue.description}
@@ -82,22 +82,22 @@ const CanvasModal = ({ modalPos, onDelete, onModalInputUpdate, setShowModal, cur
         placeholder="상세 설명을 추가해주세요."
       />
       <div>
-      <input
-        ref={photoRef}
-        style={{ display: 'none' }}
-        type="file"
-        onChange={(e) => {
-          const file = e.target.files[0];
-          if (!file) return;
+        <input
+          ref={photoRef}
+          style={{ display: "none" }}
+          type="file"
+          onChange={(e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = (e) => {
-            if (reader.readyState === reader.DONE) handleAddPhotoMount(e.target.result);
-          }
-        }}
-      />
-    </div>
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+              if (reader.readyState === reader.DONE) handleAddPhotoMount(e.target.result);
+            };
+          }}
+        />
+      </div>
       <button onClick={() => photoRef.current?.click()}>사진대지 추가</button>
       <button onClick={() => onModalInputUpdate(modalInputValue)}>확인</button>
       <button onClick={onDelete}>삭제</button>
