@@ -16,5 +16,5 @@ export type useSetPredictionRangeProps = {
   polygons: Polygon[] | [];
   selectedPolygonIndex: number | string;
   predictionRange: number;
-  setSelectedPolygonIndex: Dispatch<SetStateAction<number | string>>;
+  setSelectedPolygonIndex: Dispatch<SetStateAction<string>>;
 };

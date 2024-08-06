@@ -16,7 +16,7 @@ const useSetPredictionRange = ({
     });
 
     if (!isVisible) {
-      setSelectedPolygonIndex("None");
+      setSelectedPolygonIndex("");
     }
   }, [predictionRange, polygons, selectedPolygonIndex]);
 };
