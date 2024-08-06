@@ -1,27 +1,30 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { simplify } from "@turf/turf";
+
 import CanvasModal from "@/components/CanvasModal";
-import findCentroid from "@/utils/findCentroid";
+
 import useSetPredictionRange from "@/hooks/useSetPredictionRange";
-import increaseOpacity from "@/utils/increaseOpacity";
+
 import getColorForPolygon from "@/utils/getColorForPolygon";
 import useDrawPolygon from "@/hooks/useDrawPolygon";
-import drawCurrentPolygon from "@/utils/drawCurrentPolygon";
+
 import useDrawImageAndPolygons from "@/hooks/useDrawImageandPolygons";
 import distanceBetween from "@/utils/distanceBetween";
-import isMouseInpolygon from "@/utils/isMouseInPolygon";
+import isMouseInPolygon from "@/utils/isMouseInPolygon";
 import processFileContent from "@/utils/processFileContent";
+import handleSimplifyPolygons from "@/utils/handleSimplifyPolygons";
+import { polygon } from "@turf/turf";
+import { Point, Polygon, startPosType } from "./type";
 
 const Canvas = () => {
-  const [polygons, setPolygons] = useState([]);
-  const [selectedPolygonIndex, setSelectedPolygonIndex] = useState("");
+  const [polygons, setPolygons] = useState<Polygon[] | []>([]);
+  const [selectedPolygonIndex, setSelectedPolygonIndex] = useState(0);
   const [predictionRange, setPredictionRange] = useState(0.5);
   const [scaleFactor, setScaleFactor] = useState(1.0);
-  const [currentPolygon, setCurrentPolygon] = useState([]);
+  const [currentPolygon, setCurrentPolygon] = useState<[number, number][] | []>([]);
   const [isWheelDown, setIsWheelDown] = useState(false);
-  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+  const [startPos, setStartPos] = useState<startPosType>({ x: 0, y: 0 });
   const [fileContent, setFileContent] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [modalPos, setModalPos] = useState({ x: 0, y: 0 });
@@ -74,58 +77,71 @@ const Canvas = () => {
   }, [predictionRange, drawImageAndPolygons]);
 
   const handleCanvasClick = useCallback(
-    (e) => {
+    (e: MouseEvent) => {
       if (clickMode !== "polygonMake" || showModal) {
         return null;
       }
 
       const completionThreshold = 0.007;
+      if (canvasRef.current) {
+        const rect = (canvasRef.current as HTMLCanvasElement).getBoundingClientRect();
+        const scaledX = (e.clientX - rect.left - startPos.x) / scaleFactor;
+        const scaledY = (e.clientY - rect.top - startPos.y) / scaleFactor;
+        const x = scaledX / img.current.width;
+        const y = scaledY / img.current.height;
+        const distance =
+          currentPolygon.length > 0
+            ? distanceBetween(x, y, currentPolygon[0][0], currentPolygon[0][1])
+            : Number.MAX_VALUE;
 
-      const rect = canvasRef.current.getBoundingClientRect();
-      const scaledX = (e.clientX - rect.left - startPos.x) / scaleFactor;
-      const scaledY = (e.clientY - rect.top - startPos.y) / scaleFactor;
-      const x = scaledX / img.current.width;
-      const y = scaledY / img.current.height;
-      const distance =
-        currentPolygon.length > 0
-          ? distanceBetween(x, y, currentPolygon[0][0], currentPolygon[0][1])
-          : Number.MAX_VALUE;
+        setCurrentPolygon((prev) => [...prev, [x, y]]);
 
-      setCurrentPolygon((prev) => [...prev, [x, y]]);
-
-      if (currentPolygon.length > 2 && distance < completionThreshold) {
-        const newPolygon = {
-          labelIndex: lastLabelIndex,
-          points: [...currentPolygon, [x, y]],
-          prediction: 0.95,
-          color: getColorForPolygon(lastLabelIndex),
-        };
-        setLastLabelIndex((prev) => prev + 1);
-        setPolygons((prev) => [...prev, newPolygon]);
-        setCurrentPolygon([]);
-      }
-
-      let foundPolygonIndex = null;
-      polygons.forEach((polygon, index) => {
-        if (polygon.prediction >= predictionRange) {
-          foundPolygonIndex = index;
+        if (currentPolygon.length > 2 && distance < completionThreshold) {
+          const newPolygon = {
+            labelIndex: lastLabelIndex,
+            points: [...currentPolygon, [x, y]] as Point[],
+            prediction: 0.95,
+            color: getColorForPolygon(lastLabelIndex),
+            isVisible: true,
+            tag: "",
+            description: "",
+          };
+          setLastLabelIndex((prev) => prev + 1);
+          setPolygons((prev) => [...prev, newPolygon]);
+          setCurrentPolygon([]);
         }
-      });
 
-      setSelectedPolygonIndex(foundPolygonIndex !== null ? foundPolygonIndex : "None");
+        let foundPolygonIndex = null;
+        polygons.forEach((polygon, index) => {
+          if (polygon.prediction >= predictionRange) {
+            foundPolygonIndex = index;
+          }
+        });
+
+        setSelectedPolygonIndex(foundPolygonIndex !== null ? foundPolygonIndex : "None");
+      }
     },
     [clickMode, showModal, currentPolygon, polygons, startPos, scaleFactor, img]
   );
 
   const handleCanvasRightClick = useCallback(
-    (e) => {
+    (e: MouseEvent) => {
       e.preventDefault();
 
       if (clickMode === "sizeControll" && currentPolygon.length > 0) {
         setCurrentPolygon([]);
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext("2d");
-        drawImageAndPolygons(ctx);
+        const ctx = (canvas! as HTMLCanvasElement)?.getContext("2d");
+        drawImageAndPolygons(
+          canvasRef,
+          img,
+          startPos,
+          polygons,
+          predictionRange,
+          drawPolygon,
+          scaleFactor,
+          currentPolygon
+        );
         return;
       }
 
@@ -141,7 +157,7 @@ const Canvas = () => {
 
       let foundPolygonIndex = null;
       polygons.forEach((polygon, index) => {
-        if (isMouseInPolygon(mouseX, mouseY, polygon)) {
+        if (isMouseInPolygon(mouseX, mouseY, polygon, canvasRef, scaleFactor, startPos, img)) {
           foundPolygonIndex = index;
         }
       });
@@ -155,7 +171,6 @@ const Canvas = () => {
     },
     [clickMode, currentPolygon, polygons, startPos, scaleFactor, img, drawImageAndPolygons]
   );
-
   const handleMouseDown = useCallback(
     (e) => {
       if (e.button === 1) {
@@ -171,7 +186,7 @@ const Canvas = () => {
           let foundPolygon = false;
 
           polygons.forEach((polygon) => {
-            if (isMouseInpolygon(mouseX, mouseY, polygon, canvasRef, scaleFactor, startPos, img)) {
+            if (isMouseInPolygon(mouseX, mouseY, polygon, canvasRef, scaleFactor, startPos, img)) {
               setSelectedPolygonIndex(polygon.labelIndex);
               foundPolygon = true;
             }
@@ -197,7 +212,7 @@ const Canvas = () => {
           });
         } else if (clickMode === "movePolygon") {
           polygons.forEach((polygon, polygonIndex) => {
-            if (isMouseInpolygon(mouseX, mouseY, polygon, canvasRef, scaleFactor, startPos, img)) {
+            if (isMouseInPolygon(mouseX, mouseY, polygon, canvasRef, scaleFactor, startPos, img)) {
               setSelectedPolygon(polygonIndex);
               initialMousePos.current = { x: mouseX, y: mouseY };
               setIsDragging(true);
@@ -218,6 +233,29 @@ const Canvas = () => {
                       ? {
                           ...polygon,
                           points: [...polygon.points.slice(0, i + 1), newPoint, ...polygon.points.slice(i + 1)],
+                        }
+                      : polygon
+                  )
+                );
+                break;
+              }
+            }
+          });
+        } else if (clickMode === "deleteEdge") {
+          // Added delete edge mode
+          polygons.forEach((polygon, polygonIndex) => {
+            for (let i = 0; i < polygon.points.length; i++) {
+              const [x1, y1] = polygon.points[i];
+              const [x2, y2] = polygon.points[(i + 1) % polygon.points.length];
+              const midX = ((x1 + x2) / 2) * img.current.width;
+              const midY = ((y1 + y2) / 2) * img.current.height;
+              if (mouseX >= midX - 5 && mouseX <= midX + 5 && mouseY >= midY - 5 && mouseY <= midY + 5) {
+                setPolygons((prevPolygons) =>
+                  prevPolygons.map((polygon, idx) =>
+                    idx === polygonIndex
+                      ? {
+                          ...polygon,
+                          points: polygon.points.filter((_, pointIndex) => pointIndex !== i),
                         }
                       : polygon
                   )
@@ -344,21 +382,6 @@ const Canvas = () => {
     [clickMode]
   );
 
-  const handleWheel = (e) => {
-    if (!isWheelDown) {
-      const newOffset = {
-        x: startPos.x,
-        y: startPos.y,
-      };
-      setStartPos(newOffset);
-      const delta = Math.sign(e.deltaY);
-      setScaleFactor((prevScale) => {
-        let newScale = delta > 0 ? prevScale + 0.1 : Math.max(prevScale - 0.1, 0.1);
-        return newScale;
-      });
-    }
-  };
-
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) {
@@ -404,17 +427,6 @@ const Canvas = () => {
     setShowModal(false);
   };
 
-  const handleSimplifyPolygons = () => {
-    const simplifiedPolygons = polygons.map((polygon) => {
-      const coords = polygon.points.map(([x, y]) => [x, y]);
-      const simplified = simplify({ type: "Polygon", coordinates: [coords] }, { tolerance: 0.01, highQuality: true });
-      const points = simplified.coordinates[0].map(([x, y]) => [x, y]);
-      return { ...polygon, points };
-    });
-    setPolygons(simplifiedPolygons);
-    drawImageAndPolygons();
-  };
-
   const changeModeToPolygon = () => {
     setClickMode("polygonMake");
   };
@@ -426,6 +438,10 @@ const Canvas = () => {
   };
   const changeModeToAddEdge = () => {
     setClickMode("addEdge");
+  };
+  const changeModeToDeleteEdge = () => {
+    // Added function to change to delete edge mode
+    setClickMode("deleteEdge");
   };
 
   return (
@@ -470,7 +486,16 @@ const Canvas = () => {
       >
         엣지 추가
       </button>
-      <button onClick={handleSimplifyPolygons}>Simplify Polygons</button>
+      <button
+        type="button"
+        onClick={changeModeToDeleteEdge}
+        style={{ backgroundColor: clickMode === "deleteEdge" ? "lightblue" : "white" }}
+      >
+        엣지 삭제
+      </button>
+      <button onClick={() => handleSimplifyPolygons(polygons, setPolygons, drawImageAndPolygons)}>
+        Simplify Polygons
+      </button>
       <canvas
         ref={canvasRef}
         width={2000}

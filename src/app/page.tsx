@@ -15,7 +15,7 @@ const MOCK = {
 export default function Page() {
   return (
     <>
-      <Canvas mockdata={MOCK} baseImgUrl={"/image_page_20.jpg"} />
+      <Canvas />
     </>
   );
 }

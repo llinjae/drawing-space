@@ -16,5 +16,10 @@ export type useSetPredictionRangeProps = {
   polygons: Polygon[] | [];
   selectedPolygonIndex: number | string;
   predictionRange: number;
-  setSelectedPolygonIndex: Dispatch<SetStateAction<string>>;
+  setSelectedPolygonIndex: Dispatch<SetStateAction<number>>;
+};
+
+export type startPosType = {
+  x: number;
+  y: number;
 };

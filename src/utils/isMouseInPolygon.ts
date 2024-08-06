@@ -1,4 +1,4 @@
-const isMouseInpolygon = (mouseX, mouseY, polygon, canvasRef, scaleFactor, startPos, img) => {
+const isMouseInPolygon = (mouseX, mouseY, polygon, canvasRef, scaleFactor, startPos, img) => {
   const canvas = canvasRef.current;
   const ctx = canvas.getContext("2d");
   ctx.save();
@@ -26,4 +26,4 @@ const isMouseInpolygon = (mouseX, mouseY, polygon, canvasRef, scaleFactor, start
   return isInPath;
 };
 
-export default isMouseInpolygon;
+export default isMouseInPolygon;

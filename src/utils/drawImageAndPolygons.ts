@@ -1,12 +1,14 @@
+import { MutableRefObject } from "react";
 import drawCurrentPolygon from "./drawCurrentPolygon";
+import { Polygon, startPosType } from "@/app/type";
 
 const drawImageAndPolygons = (
-  canvasRef,
-  img,
-  startPos,
-  polygons,
-  predictionRange,
-  drawPolygon,
+  canvasRef: MutableRefObject<HTMLCanvasElement | null>,
+  img: MutableRefObject<HTMLImageElement>,
+  startPos: startPosType,
+  polygons: Polygon[],
+  predictionRange: number,
+  drawPolygon: void,
   scaleFactor,
   currentPolygon
 ) => {
