@@ -532,7 +532,7 @@
 
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import CanvasModal from "@/components/CanvasModal";
 
@@ -568,6 +568,7 @@ const Canvas = () => {
   const [selectedEdge, setSelectedEdge] = useState<{ polygonIndex: number; edgeIndex: number } | null>(null);
   const [selectedPolygon, setSelectedPolygon] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [key, setKey] = useState("Q");
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const dragStart = useRef({ x: 0, y: 0 });
@@ -575,6 +576,23 @@ const Canvas = () => {
   const img = useRef<HTMLImageElement | null>(null); // img를 null로 초기화
 
   useSetPredictionRange({ polygons, selectedPolygonIndex, predictionRange, setSelectedPolygonIndex });
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("keydown", (e) => setKey(e.key));
+  }
+  useMemo(() => {
+    if (key === "q") {
+      setClickMode("polygonMake");
+    } else if (key === "w") {
+      setClickMode("sizeControll");
+    } else if (key === "e") {
+      setClickMode("movePolygon");
+    } else if (key === "r") {
+      setClickMode("addEdge");
+    } else if (key === "t") {
+      setClickMode("deleteEdge");
+    }
+  }, [key]);
 
   const drawPolygon = useDrawPolygon(
     predictionRange,
@@ -1017,35 +1035,35 @@ const Canvas = () => {
         onClick={changeModeToPolygon}
         style={{ backgroundColor: clickMode === "polygonMake" ? "lightblue" : "white" }}
       >
-        폴리건 만들기
+        폴리건 만들기(q)
       </button>
       <button
         type="button"
         onClick={changeModeToSizeControll}
         style={{ backgroundColor: clickMode === "sizeControll" ? "lightblue" : "white" }}
       >
-        폴리건 사이즈 조절
+        폴리건 사이즈 조절(w)
       </button>
       <button
         type="button"
         onClick={changeModeToMovePolygon}
         style={{ backgroundColor: clickMode === "movePolygon" ? "lightblue" : "white" }}
       >
-        폴리건 이동
+        폴리건 이동(e)
       </button>
       <button
         type="button"
         onClick={changeModeToAddEdge}
         style={{ backgroundColor: clickMode === "addEdge" ? "lightblue" : "white" }}
       >
-        엣지 추가
+        엣지 추가(r)
       </button>
       <button
         type="button"
         onClick={changeModeToDeleteEdge}
         style={{ backgroundColor: clickMode === "deleteEdge" ? "lightblue" : "white" }}
       >
-        엣지 삭제
+        엣지 삭제(t)
       </button>
       <button onClick={() => handleSimplifyPolygons(polygons, setPolygons, drawImageAndPolygons)}>
         Simplify Polygons
