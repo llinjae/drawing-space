@@ -119,6 +119,15 @@ const Canvas = () => {
     }
   }, [predictionRange, drawImageAndPolygons]);
 
+  const getCanvasCoordinates = (e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const canvasX = (x - startPos.x) / scaleFactor;
+    const canvasY = (y - startPos.y) / scaleFactor;
+    return { x: canvasX, y: canvasY };
+  };
+
   const handleCanvasClick = useCallback(
     (e) => {
       if (clickMode !== "polygonMake" || showModal) {
@@ -179,26 +188,26 @@ const Canvas = () => {
   const handleCanvasRightClick = useCallback(
     (e: MouseEvent) => {
       e.preventDefault();
+
+      if (!canvasRef.current) return;
   
       // 폴리곤 내부에서만 우클릭 시 모달을 표시
-      const rect = canvasRef.current.getBoundingClientRect();
-      const mouseX = (e.clientX - rect.left) - startPos.x;
-      const mouseY = (e.clientY - rect.top) - startPos.y;
+      const { x: mouseX, y: mouseY } = getCanvasCoordinates(e);
   
       let foundPolygonIndex: number | null = null;
   
       polygons.forEach((polygon, index) => {
-        const isInPolygon = isMouseInPolygon(
-          mouseX,
-          mouseY,
-          polygon,
-          canvasRef,
-          scaleFactor,
-          startPos,
-          img
-        );
-  
-        if (isInPolygon) {
+        if (
+          isMouseInPolygon(
+            mouseX,
+            mouseY,
+            polygon,
+            canvasRef,
+            scaleFactor,
+            startPos,
+            img
+          )
+        ) {
           foundPolygonIndex = index;
         }
       });
@@ -216,20 +225,18 @@ const Canvas = () => {
         setModalPolygonIndex(null);
       }
   
-      // 우클릭 시 폴리곤 내부가 아닌 경우 점을 초기화하여 클릭모드에서 벗어나도록 합니다.
       if (clickMode === "polygonMake") {
         setCurrentPolygon([]);
       }
     },
-    [clickMode, currentPolygon, polygons, startPos, scaleFactor, img, drawImageAndPolygons]
+    [clickMode,
+      polygons,
+      scaleFactor,
+      startPos,
+      img,
+      getCanvasCoordinates
+    ]
   );
-
-  const getCanvasCoordinates = (e) => {
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left - startPos.x) / scaleFactor;
-    const y = (e.clientY - rect.top - startPos.y) / scaleFactor;
-    return { x, y };
-  };
 
   const handleMouseDown = useCallback(
     (e) => {
@@ -283,34 +290,75 @@ const Canvas = () => {
               setSelectedPolygonIndex(null);
             }
           }
-        }
-  
-        if (clickMode === "sizeControll") {
-          polygons.forEach((polygon, polygonIndex) => {
-            polygon.points.forEach((point, pointIndex) => {
-              const adjustedX = point[0] * img.current.width;
-              const adjustedY = point[1] * img.current.height;
-  
+        } else if (clickMode === "sizeControll" || clickMode === "movePolygon") {
+          if (selectedPolygonIndex !== null) {
+            const polygon = polygons[selectedPolygonIndex];
+        
+            // Check if clicking on a point for resizing
+            let foundPoint = false;
+            if (polygon) {
+              polygon.points.forEach((point, pointIndex) => {
+                const adjustedX = point[0] * img.current.width;
+                const adjustedY = point[1] * img.current.height;
+          
+                if (
+                  Math.abs(mouseX - adjustedX) < 5 / scaleFactor &&
+                  Math.abs(mouseY - adjustedY) < 5 / scaleFactor
+                ) {
+                  initialMousePos.current = { x: mouseX, y: mouseY };
+                  setSelectedEdge({ polygonIndex: selectedPolygonIndex, edgeIndex: pointIndex });
+                  setIsResizing(true);
+                  foundPoint = true;
+                }
+              });
+            }
+        
+            // If not resizing, check if inside the polygon for dragging
+            if (!foundPoint) {
               if (
-                Math.abs(mouseX - adjustedX) < 5 / scaleFactor &&
-                Math.abs(mouseY - adjustedY) < 5 / scaleFactor
+                isMouseInPolygon(
+                  mouseX,
+                  mouseY,
+                  polygon,
+                  canvasRef,
+                  scaleFactor,
+                  startPos,
+                  img
+                )
               ) {
                 initialMousePos.current = { x: mouseX, y: mouseY };
-                setSelectedPolygonIndex(polygonIndex);
-                setSelectedEdge({ polygonIndex, edgeIndex: pointIndex });
-                setIsResizing(true);
+                setIsDragging(true);
               }
-            });
-          });
-        } else if (clickMode === "movePolygon") {
-          polygons.forEach((polygon, polygonIndex) => {
-            if (isMouseInPolygon(mouseX, mouseY, polygon, canvasRef, scaleFactor, startPos, img)) {
-              setSelectedPolygon(polygonIndex);
-              initialMousePos.current = { x: mouseX, y: mouseY };
-              setIsDragging(true);
             }
-          });
+          }
         }
+  
+        // if (clickMode === "sizeControll") {
+        //   polygons.forEach((polygon, polygonIndex) => {
+        //     polygon.points.forEach((point, pointIndex) => {
+        //       const adjustedX = point[0] * img.current.width;
+        //       const adjustedY = point[1] * img.current.height;
+  
+        //       if (
+        //         Math.abs(mouseX - adjustedX) < 5 / scaleFactor &&
+        //         Math.abs(mouseY - adjustedY) < 5 / scaleFactor
+        //       ) {
+        //         initialMousePos.current = { x: mouseX, y: mouseY };
+        //         setSelectedPolygonIndex(polygonIndex);
+        //         setSelectedEdge({ polygonIndex, edgeIndex: pointIndex });
+        //         setIsResizing(true);
+        //       }
+        //     });
+        //   });
+        // } else if (clickMode === "movePolygon") {
+        //   polygons.forEach((polygon, polygonIndex) => {
+        //     if (isMouseInPolygon(mouseX, mouseY, polygon, canvasRef, scaleFactor, startPos, img)) {
+        //       setSelectedPolygon(polygonIndex);
+        //       initialMousePos.current = { x: mouseX, y: mouseY };
+        //       setIsDragging(true);
+        //     }
+        //   });
+        // }
       }
     },
     [clickMode, polygons, isResizing, scaleFactor]
@@ -360,15 +408,39 @@ const Canvas = () => {
   
         initialMousePos.current = { x: mouseX, y: mouseY };
         drawImageAndPolygons();
+      } else if (isDragging && selectedPolygonIndex !== null) {
+        const { x: mouseX, y: mouseY } = getCanvasCoordinates(e);
+      
+        const deltaX = (mouseX - initialMousePos.current.x) / img.current.width;
+        const deltaY = (mouseY - initialMousePos.current.y) / img.current.height;
+      
+        setPolygons((prevPolygons) =>
+          prevPolygons.map((polygon, index) => {
+            if (index === selectedPolygonIndex) {
+              const updatedPoints = polygon.points.map(([x, y]) => [
+                x + deltaX,
+                y + deltaY,
+              ]);
+              return { ...polygon, points: updatedPoints };
+            }
+            return polygon;
+          })
+        );
+      
+        initialMousePos.current = { x: mouseX, y: mouseY };
+        drawImageAndPolygons();
       } else {
         const { x: mouseX, y: mouseY } = getCanvasCoordinates(e);
-  
+
         let cursorChanged = false;
-        polygons.forEach((polygon) => {
+        let foundHoveredPolygon = false;
+
+        polygons.forEach((polygon, index) => {
+          // Check if mouse is near a vertex
           polygon.points.forEach(([x, y]) => {
             const adjustedX = x * img.current.width;
             const adjustedY = y * img.current.height;
-    
+
             if (
               Math.abs(mouseX - adjustedX) < 5 / scaleFactor &&
               Math.abs(mouseY - adjustedY) < 5 / scaleFactor
@@ -377,14 +449,50 @@ const Canvas = () => {
               cursorChanged = true;
             }
           });
+
+          // Check if mouse is over a polygon face
+          if (
+            isMouseInPolygon(
+              mouseX,
+              mouseY,
+              polygon,
+              canvasRef,
+              scaleFactor,
+              startPos,
+              img
+            )
+          ) {
+            if (!cursorChanged) {
+              canvasRef.current.style.cursor = "move";
+              cursorChanged = true;
+            }
+            foundHoveredPolygon = true;
+            setHoveredPolygonIndex(index);
+          }
         });
-  
+
+        if (!foundHoveredPolygon) {
+          setHoveredPolygonIndex(null);
+        }
+
         if (!cursorChanged) {
           canvasRef.current.style.cursor = "default";
         }
       }
     },
-    [isWheelDown, selectedEdge, drawImageAndPolygons, scaleFactor, polygons]
+    [
+      isWheelDown,
+      selectedEdge,
+      isResizing,
+      isDragging,
+      selectedPolygonIndex,
+      polygons,
+      scaleFactor,
+      startPos,
+      img,
+      getCanvasCoordinates,
+      canvasRef
+    ]
   );
   
   const handleMouseUp = useCallback(
