@@ -1,6 +1,8 @@
 import { MutableRefObject } from "react";
-import drawCurrentPolygon from "./drawCurrentPolygon";
+
 import { Polygon, startPosType } from "@/app/type";
+
+import drawCurrentPolygon from "./drawCurrentPolygon";
 
 const drawImageAndPolygons = (
   canvasRef: MutableRefObject<HTMLCanvasElement | null>,
@@ -26,7 +28,7 @@ const drawImageAndPolygons = (
       drawPolygon(polygon, ctx);
     } else polygon.isVisible = false;
   });
-  drawCurrentPolygon(currentPolygon, ctx, img);
+  drawCurrentPolygon(currentPolygon, ctx, img, scaleFactor);
   ctx.restore();
 };
 export default drawImageAndPolygons;

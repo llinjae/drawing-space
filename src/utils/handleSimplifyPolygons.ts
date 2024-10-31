@@ -8,7 +8,10 @@ const handleSimplifyPolygons = (
 ) => {
   const simplifiedPolygons = polygons.map((polygon) => {
     const coords = polygon.points.map(([x, y]) => [x, y]);
-    const simplified = simplify({ type: "Polygon", coordinates: [coords] }, { tolerance: 0.01, highQuality: true });
+    const simplified = simplify(
+      { type: "Polygon", coordinates: [coords] },
+      { tolerance: 0.01, highQuality: true }
+    );
     const points = simplified.coordinates[0].map(([x, y]) => [x, y]);
     return { ...polygon, points };
   });

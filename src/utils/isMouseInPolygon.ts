@@ -1,4 +1,12 @@
-const isMouseInPolygon = (mouseX, mouseY, polygon, canvasRef, scaleFactor, startPos, img) => {
+const isMouseInPolygon = (
+  mouseX,
+  mouseY,
+  polygon,
+  canvasRef,
+  scaleFactor,
+  startPos,
+  img
+) => {
   const canvas = canvasRef.current;
   const ctx = canvas.getContext("2d");
   ctx.save();
@@ -19,7 +27,9 @@ const isMouseInPolygon = (mouseX, mouseY, polygon, canvasRef, scaleFactor, start
     });
   }
 
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.closePath();
+
+  // No need to adjust mouseX and mouseY since they are already in canvas coordinates
   const isInPath = ctx.isPointInPath(mouseX, mouseY) && polygon.isVisible;
 
   ctx.restore();

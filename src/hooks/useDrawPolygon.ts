@@ -1,11 +1,18 @@
-import findCentroid from "@/utils/findCentroid";
-import increaseOpacity from "@/utils/increaseOpacity";
 import { useCallback } from "react";
 
-const useDrawPolygon = (predictionRange, selectedPolygonIndex, modalPolygonIndex, hoveredPolygonIndex, img) => {
+import findCentroid from "@/utils/findCentroid";
+import increaseOpacity from "@/utils/increaseOpacity";
+
+const useDrawPolygon = (
+  predictionRange,
+  selectedPolygonIndex,
+  modalPolygonIndex,
+  hoveredPolygonIndex,
+  img
+) => {
   return useCallback(
     (polygon, ctx) => {
-      //prediction range 에 들어오지 않으면 그리지 않음
+      // prediction range에 들어오지 않으면 그리지 않음
       if (polygon.prediction < predictionRange) {
         return;
       }
@@ -19,9 +26,9 @@ const useDrawPolygon = (predictionRange, selectedPolygonIndex, modalPolygonIndex
       ) {
         fillColor = increaseOpacity(fillColor);
       }
-      //캔버스 도형 그리기 시작
-      ctx.beginPath();
 
+      // 캔버스 도형 그리기 시작
+      ctx.beginPath();
       polygon.points.forEach(([x, y], index) => {
         const adjustedX = x * img.current.width;
         const adjustedY = y * img.current.height;
@@ -32,13 +39,30 @@ const useDrawPolygon = (predictionRange, selectedPolygonIndex, modalPolygonIndex
           ctx.lineTo(adjustedX, adjustedY);
         }
       });
-
       ctx.closePath();
       ctx.fillStyle = fillColor;
       ctx.fill();
+      ctx.strokeStyle = "blue"; // 폴리곤의 경계선 색상
+      ctx.lineWidth = 2;
       ctx.stroke();
 
-      const centroid = findCentroid(polygon.points.map(([x, y]) => [x * img.current.width, y * img.current.height]));
+      // 폴리곤의 꼭지점에 원 그리기 (반지름 5)
+      ctx.fillStyle = "green";
+      polygon.points.forEach(([x, y]) => {
+        const adjustedX = x * img.current.width;
+        const adjustedY = y * img.current.height;
+        ctx.beginPath();
+        ctx.arc(adjustedX, adjustedY, 5, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+
+      // 폴리곤 태그 또는 설명 표시
+      const centroid = findCentroid(
+        polygon.points.map(([x, y]) => [
+          x * img.current.width,
+          y * img.current.height,
+        ])
+      );
 
       if (polygon.tag || polygon.description) {
         ctx.font = "16px Arial";
@@ -47,17 +71,14 @@ const useDrawPolygon = (predictionRange, selectedPolygonIndex, modalPolygonIndex
         let textToDisPlay = polygon.tag;
         ctx.fillText(textToDisPlay, centroid.x, centroid.y);
       }
-
-      for (let i = 0; i < polygon.points.length; i++) {
-        const [x1, y1] = polygon.points[i];
-        const [x2, y2] = polygon.points[(i + 1) % polygon.points.length];
-        const midX = ((x1 + x2) / 2) * img.current.width;
-        const midY = ((y1 + y2) / 2) * img.current.height;
-        ctx.fillStyle = "green";
-        ctx.fillRect(midX - 3, midY - 3, 6, 6);
-      }
     },
-    [predictionRange, selectedPolygonIndex, modalPolygonIndex, hoveredPolygonIndex, img]
+    [
+      predictionRange,
+      selectedPolygonIndex,
+      modalPolygonIndex,
+      hoveredPolygonIndex,
+      img,
+    ]
   );
 };
 
