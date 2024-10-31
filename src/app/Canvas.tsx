@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import CanvasModal from "@/components/CanvasModal";
 import distanceBetween from "@/utils/distanceBetween";
+import distanceFromPointToLineSegment from "@/utils/distanceFromPointToLineSegment";
 import getColorForPolygon from "@/utils/getColorForPolygon";
 import handleSimplifyPolygons from "@/utils/handleSimplifyPolygons";
 import isMouseInPolygon from "@/utils/isMouseInPolygon";
@@ -142,62 +143,62 @@ const Canvas = () => {
     return { x: canvasX, y: canvasY };
   };
 
-  // const handleCanvasClick = useCallback(
-  //   (e) => {
-  //     if (clickMode !== "polygonMake" || showModal) {
-  //       return;
-  //     }
+  const handleCanvasClick = useCallback(
+    (e) => {
+      if (clickMode !== "polygonMake" || showModal) {
+        return;
+      }
   
-  //     const completionThreshold = 5; // 픽셀 단위
+      const completionThreshold = 5; // 픽셀 단위
   
-  //     if (canvasRef.current) {
-  //       const { x: canvasX, y: canvasY } = getCanvasCoordinates(e);
+      if (canvasRef.current) {
+        const { x: canvasX, y: canvasY } = getCanvasCoordinates(e);
   
-  //       // 이미지 크기로 정규화
-  //       const x = canvasX / img.current.width;
-  //       const y = canvasY / img.current.height;
+        // 이미지 크기로 정규화
+        const x = canvasX / img.current.width;
+        const y = canvasY / img.current.height;
   
-  //       // 현재 폴리곤에 점 추가
-  //       setCurrentPolygon((prev) => [...prev, [x, y]]);
+        // 현재 폴리곤에 점 추가
+        setCurrentPolygon((prev) => [...prev, [x, y]]);
   
-  //       // 첫 번째 점과의 거리 계산 (화면 좌표계에서)
-  //       if (currentPolygon.length > 0) {
-  //         const adjustedX = x * img.current.width;
-  //         const adjustedY = y * img.current.height;
-  //         const firstPointX = currentPolygon[0][0] * img.current.width;
-  //         const firstPointY = currentPolygon[0][1] * img.current.height;
+        // 첫 번째 점과의 거리 계산 (화면 좌표계에서)
+        if (currentPolygon.length > 0) {
+          const adjustedX = x * img.current.width;
+          const adjustedY = y * img.current.height;
+          const firstPointX = currentPolygon[0][0] * img.current.width;
+          const firstPointY = currentPolygon[0][1] * img.current.height;
   
-  //         const screenAdjustedX = adjustedX * scaleFactor + startPos.x;
-  //         const screenAdjustedY = adjustedY * scaleFactor + startPos.y;
-  //         const screenFirstPointX = firstPointX * scaleFactor + startPos.x;
-  //         const screenFirstPointY = firstPointY * scaleFactor + startPos.y;
+          const screenAdjustedX = adjustedX * scaleFactor + startPos.x;
+          const screenAdjustedY = adjustedY * scaleFactor + startPos.y;
+          const screenFirstPointX = firstPointX * scaleFactor + startPos.x;
+          const screenFirstPointY = firstPointY * scaleFactor + startPos.y;
   
-  //         const distance = Math.hypot(
-  //           screenAdjustedX - screenFirstPointX,
-  //           screenAdjustedY - screenFirstPointY
-  //         );
+          const distance = Math.hypot(
+            screenAdjustedX - screenFirstPointX,
+            screenAdjustedY - screenFirstPointY
+          );
   
-  //         if (currentPolygon.length > 2 && distance < completionThreshold) {
-  //           const newPolygon = {
-  //             labelIndex: lastLabelIndex,
-  //             points: currentPolygon,
-  //             prediction: 0.95,
-  //             color: getColorForPolygon(lastLabelIndex),
-  //             isVisible: true,
-  //             tag: "",
-  //             description: "",
-  //           };
-  //           setLastLabelIndex((prev) => prev + 1);
-  //           setPolygons((prev) => [...prev, newPolygon]);
-  //           setCurrentPolygon([]);
-  //         }
-  //       }
+          if (currentPolygon.length > 2 && distance < completionThreshold) {
+            const newPolygon = {
+              labelIndex: lastLabelIndex,
+              points: currentPolygon,
+              prediction: 0.95,
+              color: getColorForPolygon(lastLabelIndex),
+              isVisible: true,
+              tag: "",
+              description: "",
+            };
+            setLastLabelIndex((prev) => prev + 1);
+            setPolygons((prev) => [...prev, newPolygon]);
+            setCurrentPolygon([]);
+          }
+        }
   
-  //       drawImageAndPolygons();
-  //     }
-  //   },
-  //   [clickMode, showModal, currentPolygon, polygons, startPos, scaleFactor, img, lastLabelIndex, predictionRange]
-  // );
+        drawImageAndPolygons();
+      }
+    },
+    [clickMode, showModal, currentPolygon, polygons, startPos, scaleFactor, img, lastLabelIndex, predictionRange]
+  );
 
   const handleCanvasRightClick = useCallback(
     (e: MouseEvent) => {
@@ -261,129 +262,108 @@ const Canvas = () => {
         e.currentTarget.style.cursor = "grabbing";
       } else if (e.button === 0) {
         const { x: mouseX, y: mouseY } = getCanvasCoordinates(e);
+        isMouseDown.current = true;
+        dragStart.current = { x: e.clientX, y: e.clientY };
   
-        // // 드래그 여부 초기화
-        // hasMoved.current = false;
-        // isMouseDown.current = true;
+        if (clickMode === "sizeControll") {
+          let pointFound = false;
   
-        // // 점 삭제 로직을 polygonMake 모드에서만 실행
-        // let pointDeleted = false;
-        // if (clickMode === "polygonMake") {
-        //   polygons.forEach((polygon, polygonIndex) => {
-        //     polygon.points.forEach((point, pointIndex) => {
-        //       const adjustedX = point[0] * img.current.width;
-        //       const adjustedY = point[1] * img.current.height;
-  
-        //       if (
-        //         Math.abs(mouseX - adjustedX) < 5 / scaleFactor &&
-        //         Math.abs(mouseY - adjustedY) < 5 / scaleFactor
-        //       ) {
-        //         // 점 삭제
-        //         setPolygons((prevPolygons) =>
-        //           prevPolygons.map((poly, idx) =>
-        //             idx === polygonIndex
-        //               ? {
-        //                   ...poly,
-        //                   points: poly.points.filter(
-        //                     (_, idx) => idx !== pointIndex
-        //                   ),
-        //                 }
-        //               : poly
-        //           )
-        //         );
-        //         pointDeleted = true;
-        //       }
-        //     });
-        //   });
-  
-        //   if (pointDeleted) {
-        //     drawImageAndPolygons();
-        //     return; // 점을 삭제한 경우, 이후 로직 실행하지 않음
-        //   }
-        // }
-  
-        // 리사이징 및 드래깅 로직
-        let foundPoint = false;
-        polygons.forEach((polygon, polygonIndex) => {
-          polygon.points.forEach((point, pointIndex) => {
-            const adjustedX = point[0] * img.current.width;
-            const adjustedY = point[1] * img.current.height;
-  
-            if (
-              Math.abs(mouseX - adjustedX) < 5 / scaleFactor &&
-              Math.abs(mouseY - adjustedY) < 5 / scaleFactor
-            ) {
-              initialMousePos.current = { x: mouseX, y: mouseY };
-              setSelectedPolygonIndex(polygonIndex);
-              setSelectedEdge({ polygonIndex, edgeIndex: pointIndex });
-              setIsResizing(true);
-              foundPoint = true;
-            }
-          });
-        });
-  
-        if (!foundPoint) {
-          // 폴리곤 내부 클릭 시 이동 시작
+          // **1. 먼저 기존의 점을 클릭했는지 확인합니다.**
           polygons.forEach((polygon, polygonIndex) => {
-            if (
-              isMouseInPolygon(
-                mouseX,
-                mouseY,
-                polygon,
-                canvasRef,
-                scaleFactor,
-                startPos,
-                img
-              )
-            ) {
-              setSelectedPolygonIndex(polygonIndex);
-              initialMousePos.current = { x: mouseX, y: mouseY };
-              setIsDragging(true);
-            }
-          });
-        }
+            polygon.points.forEach((point, pointIndex) => {
+              const adjustedX = point[0] * img.current.width;
+              const adjustedY = point[1] * img.current.height;
   
-        // 리사이징이나 드래깅이 아닐 때만 점 추가
-        if (!isResizing && !isDragging && clickMode === "polygonMake") {
-          const completionThreshold = 5; // 픽셀 단위
-  
-          if (canvasRef.current) {
-            // 이미지 크기로 정규화
-            const x = mouseX / img.current.width;
-            const y = mouseY / img.current.height;
-  
-            // 현재 폴리곤에 점 추가
-            setCurrentPolygon((prev) => [...prev, [x, y]]);
-  
-            // 첫 번째 점과의 거리 계산
-            if (currentPolygon.length > 0) {
-              const firstPointX = currentPolygon[0][0] * img.current.width;
-              const firstPointY = currentPolygon[0][1] * img.current.height;
-  
-              const distance = Math.hypot(
-                mouseX - firstPointX,
-                mouseY - firstPointY
-              );
-  
-              if (currentPolygon.length > 2 && distance < completionThreshold) {
-                const newPolygon = {
-                  labelIndex: lastLabelIndex,
-                  points: currentPolygon,
-                  prediction: 0.95,
-                  color: getColorForPolygon(lastLabelIndex),
-                  isVisible: true,
-                  tag: "",
-                  description: "",
-                };
-                setLastLabelIndex((prev) => prev + 1);
-                setPolygons((prev) => [...prev, newPolygon]);
-                setCurrentPolygon([]);
+              if (
+                Math.abs(mouseX - adjustedX) < 5 / scaleFactor &&
+                Math.abs(mouseY - adjustedY) < 5 / scaleFactor
+              ) {
+                initialMousePos.current = { x: mouseX, y: mouseY };
+                setSelectedPolygonIndex(polygonIndex);
+                setSelectedEdge({ polygonIndex, edgeIndex: pointIndex });
+                setIsResizing(true);
+                pointFound = true;
               }
-            }
+            });
+          });
   
-            drawImageAndPolygons();
+          // **2. 기존의 점을 클릭하지 않은 경우에만 에지 클릭 검사를 수행합니다.**
+          if (!pointFound) {
+            let edgeFound = false;
+            polygons.forEach((polygon, polygonIndex) => {
+              const points = polygon.points.map(([x, y]) => [
+                x * img.current.width,
+                y * img.current.height,
+              ]);
+  
+              for (let i = 0; i < points.length; i++) {
+                const [x1, y1] = points[i];
+                const [x2, y2] = points[(i + 1) % points.length]; // 폴리곤은 닫혀 있으므로 마지막 점과 첫 번째 점을 연결
+  
+                const distance = distanceFromPointToLineSegment(
+                  mouseX,
+                  mouseY,
+                  x1,
+                  y1,
+                  x2,
+                  y2
+                );
+  
+                if (distance < 5 / scaleFactor) {
+                  // 에지 위를 클릭한 경우
+                  // 새로운 점의 정규화된 좌표 계산
+                  const normalizedX = mouseX / img.current.width;
+                  const normalizedY = mouseY / img.current.height;
+  
+                  // 새로운 점 삽입
+                  setPolygons((prevPolygons) =>
+                    prevPolygons.map((poly, idx) => {
+                      if (idx === polygonIndex) {
+                        const newPoints = [...poly.points];
+                        newPoints.splice(i + 1, 0, [normalizedX, normalizedY]);
+                        return { ...poly, points: newPoints };
+                      }
+                      return poly;
+                    })
+                  );
+  
+                  // 새로운 점을 선택하여 드래그할 수 있도록 상태 업데이트
+                  setSelectedPolygonIndex(polygonIndex);
+                  setSelectedEdge({ polygonIndex, edgeIndex: i + 1 });
+                  initialMousePos.current = { x: mouseX, y: mouseY };
+                  setIsResizing(true);
+  
+                  edgeFound = true;
+                  break;
+                }
+              }
+            });
+  
+            // **3. 에지도 클릭하지 않은 경우 폴리곤 내부를 클릭하여 이동합니다.**
+            if (!edgeFound) {
+              polygons.forEach((polygon, polygonIndex) => {
+                if (
+                  isMouseInPolygon(
+                    mouseX,
+                    mouseY,
+                    polygon,
+                    canvasRef,
+                    scaleFactor,
+                    startPos,
+                    img
+                  )
+                ) {
+                  setSelectedPolygonIndex(polygonIndex);
+                  initialMousePos.current = { x: mouseX, y: mouseY };
+                  setIsDragging(true);
+                }
+              });
+            }
           }
         }
+  
+        // 다른 모드에 대한 처리 (polygonMake 등)
+        // ...
       }
     },
     [
@@ -397,6 +377,7 @@ const Canvas = () => {
       drawImageAndPolygons,
     ]
   );
+  
   
   const handleMouseMove = useCallback(
     (e) => {
@@ -738,7 +719,7 @@ const Canvas = () => {
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
-        // onClick={handleCanvasClick}
+        onClick={handleCanvasClick}
         onDoubleClick={handleCanvasDoubleClick}
         onContextMenu={handleCanvasRightClick}
         onWheel={handleWheel}
