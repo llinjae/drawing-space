@@ -33,7 +33,6 @@ const Canvas = () => {
   const [clickMode, setClickMode] = useState("polygonMake");
   const [isResizing, setIsResizing] = useState(false);
   const [selectedEdge, setSelectedEdge] = useState<{ polygonIndex: number; edgeIndex: number } | null>(null);
-  const [selectedPolygon, setSelectedPolygon] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [key, setKey] = useState("Q");
 
@@ -494,43 +493,44 @@ const Canvas = () => {
 
   const handleCanvasDoubleClick = useCallback(
     (e) => {
-      const { x: mouseX, y: mouseY } = getCanvasCoordinates(e);
+      if (clickMode !== "sizeControll") return;
   
+      const { x: mouseX, y: mouseY } = getCanvasCoordinates(e);
       let pointFound = false;
   
-      polygons.forEach((polygon, polygonIndex) => {
-        polygon.points.forEach((point, pointIndex) => {
-          const adjustedX = point[0] * img.current.width;
-          const adjustedY = point[1] * img.current.height;
+      // polygons 상태 업데이트
+      setPolygons((prevPolygons) =>
+        prevPolygons
+          .map((polygon) => {
+            const updatedPoints = polygon.points.filter((point) => {
+              const adjustedX = point[0] * img.current.width;
+              const adjustedY = point[1] * img.current.height;
   
-          if (
-            Math.abs(mouseX - adjustedX) < 5 / scaleFactor &&
-            Math.abs(mouseY - adjustedY) < 5 / scaleFactor
-          ) {
-            // 점 삭제
-            setPolygons((prevPolygons) =>
-              prevPolygons.map((poly, idx) =>
-                idx === polygonIndex
-                  ? {
-                      ...poly,
-                      points: poly.points.filter(
-                        (_, idx) => idx !== pointIndex
-                      ),
-                    }
-                  : poly
-              )
-            );
-            pointFound = true;
-          }
-        });
-      });
+              const isCloseToMouse =
+                Math.abs(mouseX - adjustedX) < 5 / scaleFactor &&
+                Math.abs(mouseY - adjustedY) < 5 / scaleFactor;
   
+              if (isCloseToMouse) {
+                pointFound = true; // 점을 삭제하므로 flag 설정
+                return false; // 삭제할 점은 필터링으로 제거
+              }
+              return true;
+            });
+  
+            // 점이 3개 미만일 경우 해당 폴리곤을 제거
+            return updatedPoints.length >= 3 ? { ...polygon, points: updatedPoints } : null;
+          })
+          .filter(Boolean) // null인 폴리곤 필터링으로 제거
+      );
+  
+      // 점 삭제가 이루어졌을 때마다 바로 캔버스 업데이트
       if (pointFound) {
         drawImageAndPolygons();
       }
     },
-    [polygons, scaleFactor, img, drawImageAndPolygons]
+    [clickMode, scaleFactor, img, getCanvasCoordinates, drawImageAndPolygons]
   );
+  
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
