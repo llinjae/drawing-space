@@ -89,8 +89,6 @@ const Canvas = () => {
       setClickMode("polygonMake");
     } else if (key === "w") {
       setClickMode("sizeControll");
-    } else if (key === "e") {
-      setClickMode("addEdge");
     }
   }, [key]);
 
@@ -256,7 +254,6 @@ const Canvas = () => {
   const handleMouseDown = useCallback(
     (e) => {
       if (e.button === 1) {
-        // 팬(Pan) 기능 처리
         setIsWheelDown(true);
         dragStart.current = { x: e.clientX, y: e.clientY };
         e.currentTarget.style.cursor = "grabbing";
@@ -268,7 +265,7 @@ const Canvas = () => {
         if (clickMode === "sizeControll") {
           let pointFound = false;
   
-          // **1. 먼저 기존의 점을 클릭했는지 확인합니다.**
+          // 기존 점 클릭 확인
           polygons.forEach((polygon, polygonIndex) => {
             polygon.points.forEach((point, pointIndex) => {
               const adjustedX = point[0] * img.current.width;
@@ -287,7 +284,7 @@ const Canvas = () => {
             });
           });
   
-          // **2. 기존의 점을 클릭하지 않은 경우에만 에지 클릭 검사를 수행합니다.**
+          // 에지 클릭 확인 및 새 점 추가
           if (!pointFound) {
             let edgeFound = false;
             polygons.forEach((polygon, polygonIndex) => {
@@ -298,7 +295,7 @@ const Canvas = () => {
   
               for (let i = 0; i < points.length; i++) {
                 const [x1, y1] = points[i];
-                const [x2, y2] = points[(i + 1) % points.length]; // 폴리곤은 닫혀 있으므로 마지막 점과 첫 번째 점을 연결
+                const [x2, y2] = points[(i + 1) % points.length];
   
                 const distance = distanceFromPointToLineSegment(
                   mouseX,
@@ -310,26 +307,24 @@ const Canvas = () => {
                 );
   
                 if (distance < 5 / scaleFactor) {
-                  // 에지 위를 클릭한 경우
-                  // 새로운 점의 정규화된 좌표 계산
                   const normalizedX = mouseX / img.current.width;
                   const normalizedY = mouseY / img.current.height;
   
-                  // 새로운 점 삽입
                   setPolygons((prevPolygons) =>
                     prevPolygons.map((poly, idx) => {
                       if (idx === polygonIndex) {
                         const newPoints = [...poly.points];
-                        newPoints.splice(i + 1, 0, [normalizedX, normalizedY]);
+                        const insertIndex = (i + 1) % newPoints.length;
+                        newPoints.splice(insertIndex, 0, [normalizedX, normalizedY]);
                         return { ...poly, points: newPoints };
                       }
                       return poly;
                     })
                   );
   
-                  // 새로운 점을 선택하여 드래그할 수 있도록 상태 업데이트
+                  // 추가된 점을 선택 상태로 설정
                   setSelectedPolygonIndex(polygonIndex);
-                  setSelectedEdge({ polygonIndex, edgeIndex: i + 1 });
+                  setSelectedEdge({ polygonIndex, edgeIndex: (i + 1) % polygon.points.length });
                   initialMousePos.current = { x: mouseX, y: mouseY };
                   setIsResizing(true);
   
@@ -339,7 +334,7 @@ const Canvas = () => {
               }
             });
   
-            // **3. 에지도 클릭하지 않은 경우 폴리곤 내부를 클릭하여 이동합니다.**
+            // 폴리곤 내부 클릭 시 이동 처리
             if (!edgeFound) {
               polygons.forEach((polygon, polygonIndex) => {
                 if (
@@ -361,37 +356,22 @@ const Canvas = () => {
             }
           }
         }
-  
-        // 다른 모드에 대한 처리 (polygonMake 등)
-        // ...
       }
     },
-    [
-      clickMode,
-      polygons,
-      scaleFactor,
-      startPos,
-      img,
-      currentPolygon,
-      lastLabelIndex,
-      drawImageAndPolygons,
-    ]
+    [clickMode, polygons, scaleFactor, startPos, img]
   );
-  
   
   const handleMouseMove = useCallback(
     (e) => {
       if (isMouseDown.current) {
-        // 마우스 이동 거리를 계산하여 드래그 여부를 판단합니다.
         const deltaX = e.clientX - dragStart.current.x;
         const deltaY = e.clientY - dragStart.current.y;
         if (Math.hypot(deltaX, deltaY) > 5) {
           hasMoved.current = true;
         }
       }
-      
+  
       if (isWheelDown) {
-        // 팬(Pan) 기능 처리
         const deltaX = e.clientX - dragStart.current.x;
         const deltaY = e.clientY - dragStart.current.y;
         const newOffset = {
@@ -401,8 +381,7 @@ const Canvas = () => {
         setStartPos(newOffset);
         dragStart.current = { x: e.clientX, y: e.clientY };
         e.preventDefault();
-      } else if (selectedEdge !== null && isResizing) {
-        // 점 조절 로직
+      } else if (selectedEdge && isResizing) {
         const { x: mouseX, y: mouseY } = getCanvasCoordinates(e);
   
         const normalizedX = mouseX / img.current.width;
@@ -425,7 +404,6 @@ const Canvas = () => {
   
         drawImageAndPolygons();
       } else if (isDragging && selectedPolygonIndex !== null) {
-        // 폴리곤 이동 로직
         const { x: mouseX, y: mouseY } = getCanvasCoordinates(e);
   
         const deltaX = (mouseX - initialMousePos.current.x) / img.current.width;
@@ -447,9 +425,7 @@ const Canvas = () => {
         initialMousePos.current = { x: mouseX, y: mouseY };
         drawImageAndPolygons();
       } else {
-        // 커서 모양 변경 및 호버 효과 처리
         const { x: mouseX, y: mouseY } = getCanvasCoordinates(e);
-  
         let cursorChanged = false;
         polygons.forEach((polygon) => {
           polygon.points.forEach(([x, y]) => {
@@ -665,9 +641,6 @@ const Canvas = () => {
   const changeModeToSizeControll = () => {
     setClickMode("sizeControll");
   };
-  const changeModeToAddEdge = () => {
-    setClickMode("addEdge");
-  };
 
   const logPolygons = () => {
     console.log("Current Polygons:", polygons);
@@ -700,13 +673,6 @@ const Canvas = () => {
         style={{ backgroundColor: clickMode === "sizeControll" ? "lightblue" : "white" }}
       >
         폴리건 사이즈 조절(w)
-      </button>
-      <button
-        type="button"
-        onClick={changeModeToAddEdge}
-        style={{ backgroundColor: clickMode === "addEdge" ? "lightblue" : "white" }}
-      >
-        엣지 추가(r)
       </button>
       <button onClick={() => handleSimplifyPolygons(polygons, setPolygons, drawImageAndPolygons)}>
         Simplify Polygons
