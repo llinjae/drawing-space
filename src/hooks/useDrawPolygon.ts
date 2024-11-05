@@ -8,7 +8,8 @@ const useDrawPolygon = (
   selectedPolygonIndex,
   modalPolygonIndex,
   hoveredPolygonIndex,
-  img
+  img,
+  scaleFactor
 ) => {
   return useCallback(
     (polygon, ctx) => {
@@ -43,7 +44,7 @@ const useDrawPolygon = (
       ctx.fillStyle = fillColor;
       ctx.fill();
       ctx.strokeStyle = "blue"; // 폴리곤의 경계선 색상
-      ctx.lineWidth = 2;
+      ctx.lineWidth = Math.min(Math.max(2 / scaleFactor, 1), 10);
       ctx.stroke();
 
       // 폴리곤의 꼭지점에 원 그리기 (반지름 5)
@@ -52,7 +53,13 @@ const useDrawPolygon = (
         const adjustedX = x * img.current.width;
         const adjustedY = y * img.current.height;
         ctx.beginPath();
-        ctx.arc(adjustedX, adjustedY, 5, 0, 2 * Math.PI);
+        ctx.arc(
+          adjustedX,
+          adjustedY,
+          Math.min(Math.max(5 / scaleFactor, 3), 100),
+          0,
+          2 * Math.PI
+        );
         ctx.fill();
       });
 

@@ -10,7 +10,7 @@ const drawImageAndPolygons = (
   startPos: startPosType,
   polygons: Polygon[],
   predictionRange: number,
-  drawPolygon: void,
+  drawPolygon: () => void,
   scaleFactor,
   currentPolygon
 ) => {

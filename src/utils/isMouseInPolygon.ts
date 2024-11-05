@@ -7,33 +7,27 @@ const isMouseInPolygon = (
   startPos,
   img
 ) => {
-  const canvas = canvasRef.current;
-  const ctx = canvas.getContext("2d");
-  ctx.save();
-  ctx.setTransform(scaleFactor, 0, 0, scaleFactor, startPos.x, startPos.y);
-
+  const ctx = canvasRef.current.getContext("2d");
   ctx.beginPath();
 
-  if (polygon && Array.isArray(polygon.points)) {
-    polygon.points.forEach(([x, y], index) => {
-      const polyX = x * img.current.width;
-      const polyY = y * img.current.height;
+  // 각 폴리곤 점을 현재 scaleFactor와 startPos에 맞게 변환
+  polygon.points.forEach(([x, y], index) => {
+    const adjustedX = x * img.current.width * scaleFactor + startPos.x;
+    const adjustedY = y * img.current.height * scaleFactor + startPos.y;
 
-      if (index === 0) {
-        ctx.moveTo(polyX, polyY);
-      } else {
-        ctx.lineTo(polyX, polyY);
-      }
-    });
-  }
-
+    if (index === 0) {
+      ctx.moveTo(adjustedX, adjustedY);
+    } else {
+      ctx.lineTo(adjustedX, adjustedY);
+    }
+  });
   ctx.closePath();
 
-  // No need to adjust mouseX and mouseY since they are already in canvas coordinates
-  const isInPath = ctx.isPointInPath(mouseX, mouseY) && polygon.isVisible;
-
-  ctx.restore();
-  return isInPath;
+  // 변환된 좌표 내에 마우스가 있는지 확인
+  return ctx.isPointInPath(
+    mouseX * scaleFactor + startPos.x,
+    mouseY * scaleFactor + startPos.y
+  ) && polygon.isVisible;
 };
 
 export default isMouseInPolygon;
