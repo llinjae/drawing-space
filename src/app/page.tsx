@@ -1,6 +1,6 @@
 "use client";
 
-import Canvas from "./Canvas";
+import Canvas from "../components/Canvas";
 
 const MOCK = {
   "0": "0.0 0.033649 0.066859 0.091074 0.066859 0.091275 0.071134 0.040701 0.071704 0.040701 0.074554 0.033649 0.074554 0.033649 0.067999",

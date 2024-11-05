@@ -1,18 +1,20 @@
+// src/hooks/useSetPredictionRange.ts
+
 import { useEffect } from "react";
 
-import { useSetPredictionRangeProps } from "@/app/type";
+import { UseSetPredictionRangeProps } from "../types";
 
 const useSetPredictionRange = ({
   polygons,
-  selectedPolygonIndex,
+  selectedPolygonLabelIndex,
   predictionRange,
-  setSelectedPolygonIndex,
-}: useSetPredictionRangeProps) => {
+  setSelectedPolygonLabelIndex,
+}: UseSetPredictionRangeProps) => {
   useEffect(() => {
     let isVisible = false;
     polygons.forEach((polygon) => {
       if (
-        polygon.labelIndex === selectedPolygonIndex &&
+        polygon.labelIndex === selectedPolygonLabelIndex &&
         polygon.prediction >= predictionRange
       ) {
         isVisible = true;
@@ -20,9 +22,14 @@ const useSetPredictionRange = ({
     });
 
     if (!isVisible) {
-      setSelectedPolygonIndex("");
+      setSelectedPolygonLabelIndex(null);
     }
-  }, [predictionRange, polygons, selectedPolygonIndex]);
+  }, [
+    predictionRange,
+    polygons,
+    selectedPolygonLabelIndex,
+    setSelectedPolygonLabelIndex,
+  ]);
 };
 
 export default useSetPredictionRange;

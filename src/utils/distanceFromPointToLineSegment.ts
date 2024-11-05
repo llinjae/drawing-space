@@ -1,8 +1,16 @@
-function distanceFromPointToLineSegment(px, py, x1, y1, x2, y2) {
+// src/utils/distanceFromPointToLineSegment.ts
+
+const distanceFromPointToLineSegment = (
+  px: number,
+  py: number,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number
+): number => {
   const lineLengthSquared = (x2 - x1) ** 2 + (y2 - y1) ** 2;
 
   if (lineLengthSquared === 0) {
-    // 선분의 시작점과 끝점이 동일한 경우
     const dx = px - x1;
     const dy = py - y1;
     return Math.sqrt(dx * dx + dy * dy);
@@ -17,6 +25,6 @@ function distanceFromPointToLineSegment(px, py, x1, y1, x2, y2) {
   const dx = px - projectionX;
   const dy = py - projectionY;
   return Math.sqrt(dx * dx + dy * dy);
-}
+};
 
 export default distanceFromPointToLineSegment;

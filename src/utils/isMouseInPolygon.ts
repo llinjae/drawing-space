@@ -1,33 +1,37 @@
-const isMouseInPolygon = (
-  mouseX,
-  mouseY,
-  polygon,
-  canvasRef,
-  scaleFactor,
-  startPos,
-  img
-) => {
-  const ctx = canvasRef.current.getContext("2d");
-  ctx.beginPath();
+// src/utils/isMouseInPolygon.ts
 
-  // 각 폴리곤 점을 현재 scaleFactor와 startPos에 맞게 변환
+import { Polygon } from "../types";
+
+const isMouseInPolygon = (
+  mouseX: number,
+  mouseY: number,
+  polygon: Polygon,
+  canvasRef: React.RefObject<HTMLCanvasElement>,
+  scaleFactor: number,
+  startPos: { x: number; y: number },
+  img: React.MutableRefObject<HTMLImageElement | null>
+): boolean => {
+  const ctx = canvasRef.current!.getContext("2d");
+  ctx!.beginPath();
+
   polygon.points.forEach(([x, y], index) => {
-    const adjustedX = x * img.current.width * scaleFactor + startPos.x;
-    const adjustedY = y * img.current.height * scaleFactor + startPos.y;
+    const adjustedX = x * img.current!.width * scaleFactor + startPos.x;
+    const adjustedY = y * img.current!.height * scaleFactor + startPos.y;
 
     if (index === 0) {
-      ctx.moveTo(adjustedX, adjustedY);
+      ctx!.moveTo(adjustedX, adjustedY);
     } else {
-      ctx.lineTo(adjustedX, adjustedY);
+      ctx!.lineTo(adjustedX, adjustedY);
     }
   });
-  ctx.closePath();
+  ctx!.closePath();
 
-  // 변환된 좌표 내에 마우스가 있는지 확인
-  return ctx.isPointInPath(
-    mouseX * scaleFactor + startPos.x,
-    mouseY * scaleFactor + startPos.y
-  ) && polygon.isVisible;
+  return (
+    ctx!.isPointInPath(
+      mouseX * scaleFactor + startPos.x,
+      mouseY * scaleFactor + startPos.y
+    ) && polygon.isVisible
+  );
 };
 
 export default isMouseInPolygon;

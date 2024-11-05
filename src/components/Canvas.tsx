@@ -1,64 +1,66 @@
+// src/components/Canvas.tsx
+
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import CanvasModal from "@/components/CanvasModal";
-import distanceFromPointToLineSegment from "@/utils/distanceFromPointToLineSegment";
-import getColorForPolygon from "@/utils/getColorForPolygon";
-import handleSimplifyPolygons from "@/utils/handleSimplifyPolygons";
-import isMouseInPolygon from "@/utils/isMouseInPolygon";
-import processFileContent from "@/utils/processFileContent";
 import useDrawImageAndPolygons from "@/hooks/useDrawImageandPolygons";
-import useDrawPolygon from "@/hooks/useDrawPolygon";
-import useSetPredictionRange from "@/hooks/useSetPredictionRange";
 
-import { Point, Polygon, startPosType } from "./type";
+import useDrawPolygon from "../hooks/useDrawPolygon";
+import useSetPredictionRange from "../hooks/useSetPredictionRange";
+import distanceFromPointToLineSegment from "../utils/distanceFromPointToLineSegment";
+import getColorForPolygon from "../utils/getColorForPolygon";
+import handleSimplifyPolygons from "../utils/handleSimplifyPolygons";
+import isMouseInPolygon from "../utils/isMouseInPolygon";
+import processFileContent from "../utils/processFileContent";
+import { Polygon, StartPosType } from "../types";
+import CanvasModal from "./CanvasModal";
 
-const Canvas = () => {
-  const [polygons, setPolygons] = useState<Polygon[] | []>([]);
-  const [selectedPolygonIndex, setSelectedPolygonIndex] = useState<number | null>(null);
-  const [predictionRange, setPredictionRange] = useState(0.5);
-  const [scaleFactor, setScaleFactor] = useState(1.0);
-  const [currentPolygon, setCurrentPolygon] = useState<[number, number][] | []>([]);
-  const [isWheelDown, setIsWheelDown] = useState(false);
-  const [startPos, setStartPos] = useState<startPosType>({ x: 0, y: 0 });
-  const [fileContent, setFileContent] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [modalPos, setModalPos] = useState({ x: 0, y: 0 });
+const Canvas: React.FC = () => {
+  const [polygons, setPolygons] = useState<Polygon[]>([]);
+  const [selectedPolygonLabelIndex, setSelectedPolygonLabelIndex] = useState<number | null>(null);
+  const [predictionRange, setPredictionRange] = useState<number>(0.5);
+  const [scaleFactor, setScaleFactor] = useState<number>(1.0);
+  const [currentPolygon, setCurrentPolygon] = useState<[number, number][]>([]);
+  const [isWheelDown, setIsWheelDown] = useState<boolean>(false);
+  const [startPos, setStartPos] = useState<StartPosType>({ x: 0, y: 0 });
+  const [fileContent, setFileContent] = useState<string>("");
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [modalPos, setModalPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [modalPolygonLabelIndex, setModalPolygonLabelIndex] = useState<number | null>(null);
   const [hoveredPolygonLabelIndex, setHoveredPolygonLabelIndex] = useState<number | null>(null);
   const [photos, setPhotos] = useState<Record<number, string>>({});
-  const [lastLabelIndex, setLastLabelIndex] = useState(0);
-  const [clickMode, setClickMode] = useState("polygonMake");
-  const [isResizing, setIsResizing] = useState(false);
+  const [lastLabelIndex, setLastLabelIndex] = useState<number>(0);
+  const [clickMode, setClickMode] = useState<string>("polygonMake");
+  const [isResizing, setIsResizing] = useState<boolean>(false);
   const [selectedEdge, setSelectedEdge] = useState<{ polygonLabelIndex: number; edgeIndex: number } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [key, setKey] = useState("Q");
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [key, setKey] = useState<string>("Q");
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const dragStart = useRef({ x: 0, y: 0 });
-  const initialMousePos = useRef({ x: 0, y: 0 });
+  const dragStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const initialMousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const img = useRef<HTMLImageElement | null>(null);
-  const isMouseDown = useRef(false);
-  const hasMoved = useRef(false);
+  const isMouseDown = useRef<boolean>(false);
+  const hasMoved = useRef<boolean>(false);
 
   useSetPredictionRange({
     polygons,
-    selectedPolygonIndex,
+    selectedPolygonLabelIndex,
     predictionRange,
-    setSelectedPolygonIndex,
+    setSelectedPolygonLabelIndex,
   });
 
-  const drawPolygon = useDrawPolygon(
+  const drawPolygon = useDrawPolygon({
     predictionRange,
-    selectedPolygonIndex,
+    selectedPolygonLabelIndex,
     modalPolygonLabelIndex,
     hoveredPolygonLabelIndex,
     img,
-    scaleFactor
-  );
+    scaleFactor,
+  });
 
-  const drawImageAndPolygons = useDrawImageAndPolygons(
+  const drawImageAndPolygons = useDrawImageAndPolygons({
     canvasRef,
     img,
     startPos,
@@ -66,11 +68,11 @@ const Canvas = () => {
     predictionRange,
     drawPolygon,
     scaleFactor,
-    currentPolygon
-  );
+    currentPolygon,
+  });
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       setKey(e.key);
 
       if (e.key === "Escape") {
@@ -118,10 +120,11 @@ const Canvas = () => {
     }
   }, [predictionRange, drawImageAndPolygons]);
 
-  const getCanvasCoordinates = (e) => {
-    const rect = canvasRef.current.getBoundingClientRect();
+  const getCanvasCoordinates = (e: React.MouseEvent | MouseEvent) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
 
-    // 화면 좌표에서 캔버스 상대 좌표로 변환
+    if (!rect) return { x: 0, y: 0 };
+
     const x = (e.clientX - rect.left - startPos.x) / scaleFactor;
     const y = (e.clientY - rect.top - startPos.y) / scaleFactor;
 
@@ -129,24 +132,21 @@ const Canvas = () => {
   };
 
   const handleCanvasClick = useCallback(
-    (e) => {
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
       if (clickMode !== "polygonMake" || showModal) {
         return;
       }
 
-      const completionThreshold = 5; // 픽셀 단위
+      const completionThreshold = 5;
 
-      if (canvasRef.current) {
+      if (canvasRef.current && img.current) {
         const { x: canvasX, y: canvasY } = getCanvasCoordinates(e);
 
-        // 이미지 크기로 정규화
         const x = canvasX / img.current.width;
         const y = canvasY / img.current.height;
 
-        // 현재 폴리곤에 점 추가
         setCurrentPolygon((prev) => [...prev, [x, y]]);
 
-        // 첫 번째 점과의 거리 계산 (화면 좌표계에서)
         if (currentPolygon.length > 0) {
           const adjustedX = x * img.current.width;
           const adjustedY = y * img.current.height;
@@ -164,7 +164,7 @@ const Canvas = () => {
           );
 
           if (currentPolygon.length > 2 && distance < completionThreshold) {
-            const newPolygon = {
+            const newPolygon: Polygon = {
               labelIndex: lastLabelIndex,
               points: currentPolygon,
               prediction: 0.95,
@@ -197,7 +197,7 @@ const Canvas = () => {
   );
 
   const handleCanvasRightClick = useCallback(
-    (e: MouseEvent) => {
+    (e: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
       e.preventDefault();
 
       if (!canvasRef.current) return;
@@ -242,7 +242,7 @@ const Canvas = () => {
   );
 
   const handleMouseDown = useCallback(
-    (e) => {
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
       if (e.button === 1) {
         setIsWheelDown(true);
         dragStart.current = { x: e.clientX, y: e.clientY };
@@ -255,18 +255,17 @@ const Canvas = () => {
         if (clickMode === "sizeControll") {
           let pointFound = false;
 
-          // 기존 점 클릭 확인
           polygons.forEach((polygon) => {
             polygon.points.forEach((point, pointIndex) => {
-              const adjustedX = point[0] * img.current.width;
-              const adjustedY = point[1] * img.current.height;
+              const adjustedX = point[0] * img.current!.width;
+              const adjustedY = point[1] * img.current!.height;
 
               if (
                 Math.abs(mouseX - adjustedX) < 5 / scaleFactor &&
                 Math.abs(mouseY - adjustedY) < 5 / scaleFactor
               ) {
                 initialMousePos.current = { x: mouseX, y: mouseY };
-                setSelectedPolygonIndex(polygon.labelIndex);
+                setSelectedPolygonLabelIndex(polygon.labelIndex);
                 setSelectedEdge({ polygonLabelIndex: polygon.labelIndex, edgeIndex: pointIndex });
                 setIsResizing(true);
                 pointFound = true;
@@ -274,13 +273,12 @@ const Canvas = () => {
             });
           });
 
-          // 에지 클릭 확인 및 새 점 추가
           if (!pointFound) {
             let edgeFound = false;
             polygons.forEach((polygon) => {
               const points = polygon.points.map(([x, y]) => [
-                x * img.current.width,
-                y * img.current.height,
+                x * img.current!.width,
+                y * img.current!.height,
               ]);
 
               for (let i = 0; i < points.length; i++) {
@@ -297,8 +295,8 @@ const Canvas = () => {
                 );
 
                 if (distance < 5 / scaleFactor) {
-                  const normalizedX = mouseX / img.current.width;
-                  const normalizedY = mouseY / img.current.height;
+                  const normalizedX = mouseX / img.current!.width;
+                  const normalizedY = mouseY / img.current!.height;
 
                   setPolygons((prevPolygons) =>
                     prevPolygons.map((poly) => {
@@ -312,8 +310,7 @@ const Canvas = () => {
                     })
                   );
 
-                  // 추가된 점을 선택 상태로 설정
-                  setSelectedPolygonIndex(polygon.labelIndex);
+                  setSelectedPolygonLabelIndex(polygon.labelIndex);
                   setSelectedEdge({
                     polygonLabelIndex: polygon.labelIndex,
                     edgeIndex: (i + 1) % polygon.points.length,
@@ -327,7 +324,6 @@ const Canvas = () => {
               }
             });
 
-            // 폴리곤 내부 클릭 시 이동 처리
             if (!edgeFound) {
               polygons.forEach((polygon) => {
                 if (
@@ -341,7 +337,7 @@ const Canvas = () => {
                     img
                   )
                 ) {
-                  setSelectedPolygonIndex(polygon.labelIndex);
+                  setSelectedPolygonLabelIndex(polygon.labelIndex);
                   initialMousePos.current = { x: mouseX, y: mouseY };
                   setIsDragging(true);
                 }
@@ -355,9 +351,9 @@ const Canvas = () => {
   );
 
   const handleMouseMove = useCallback(
-    (e) => {
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
       const { x: mouseX, y: mouseY } = getCanvasCoordinates(e);
-      let hoveredLabelIndex = null;
+      let hoveredLabelIndex: number | null = null;
 
       polygons.forEach((polygon) => {
         if (
@@ -386,7 +382,6 @@ const Canvas = () => {
         }
       }
 
-      // 휠을 누른 상태에서 canvas 이동
       if (isWheelDown) {
         const deltaX = e.clientX - dragStart.current.x;
         const deltaY = e.clientY - dragStart.current.y;
@@ -398,60 +393,60 @@ const Canvas = () => {
         dragStart.current = { x: e.clientX, y: e.clientY };
         e.preventDefault();
       } else if (selectedEdge && isResizing) {
-        const { x: mouseX, y: mouseY } = getCanvasCoordinates(e);
-
-        const normalizedX = mouseX / img.current.width;
-        const normalizedY = mouseY / img.current.height;
+        const normalizedX = mouseX / img.current!.width;
+        const normalizedY = mouseY / img.current!.height;
 
         setPolygons((prevPolygons) =>
           prevPolygons.map((polygon) => {
             if (polygon.labelIndex === selectedEdge.polygonLabelIndex) {
-              const updatedPoints = polygon.points.map((point, pointIndex) => {
-                if (pointIndex === selectedEdge.edgeIndex) {
-                  return [normalizedX, normalizedY];
+              const updatedPoints: [number, number][] = polygon.points.map(
+                (point: [number, number], pointIndex) => {
+                  if (pointIndex === selectedEdge.edgeIndex) {
+                    return [normalizedX, normalizedY] as [number, number];
+                  }
+                  return point;
                 }
-                return point;
-              });
+              );
               return { ...polygon, points: updatedPoints };
             }
             return polygon;
           })
         );
-
+        
         drawImageAndPolygons();
-      } else if (isDragging && selectedPolygonIndex !== null) {
-        const { x: mouseX, y: mouseY } = getCanvasCoordinates(e);
-
-        const deltaX = (mouseX - initialMousePos.current.x) / img.current.width;
-        const deltaY = (mouseY - initialMousePos.current.y) / img.current.height;
-
+      } else if (isDragging && selectedPolygonLabelIndex !== null) {
+        const deltaX = (mouseX - initialMousePos.current.x) / img.current!.width;
+        const deltaY = (mouseY - initialMousePos.current.y) / img.current!.height;
+      
         setPolygons((prevPolygons) =>
           prevPolygons.map((polygon) => {
-            if (polygon.labelIndex === selectedPolygonIndex) {
-              const updatedPoints = polygon.points.map(([x, y]) => [
-                x + deltaX,
-                y + deltaY,
-              ]);
+            if (polygon.labelIndex === selectedPolygonLabelIndex) {
+              const updatedPoints: [number, number][] = polygon.points.map(
+                ([x, y]: [number, number]) => {
+                  return [x + deltaX, y + deltaY] as [number, number];
+                }
+              );
               return { ...polygon, points: updatedPoints };
             }
             return polygon;
           })
         );
-
-        initialMousePos.current = { x: mouseX, y: mouseY };
+      
         drawImageAndPolygons();
       } else {
         let cursorChanged = false;
         polygons.forEach((polygon) => {
           polygon.points.forEach(([x, y]) => {
-            const adjustedX = x * img.current.width;
-            const adjustedY = y * img.current.height;
+            const adjustedX = x * img.current!.width;
+            const adjustedY = y * img.current!.height;
 
             if (
               Math.abs(mouseX - adjustedX) < 5 / scaleFactor &&
               Math.abs(mouseY - adjustedY) < 5 / scaleFactor
             ) {
-              canvasRef.current.style.cursor = "pointer";
+              if (canvasRef.current) {
+                canvasRef.current.style.cursor = "pointer";
+              }
               cursorChanged = true;
             }
           });
@@ -468,12 +463,14 @@ const Canvas = () => {
               img
             )
           ) {
-            canvasRef.current.style.cursor = "move";
+            if (canvasRef.current) {
+              canvasRef.current.style.cursor = "move";
+            }
             cursorChanged = true;
           }
         });
 
-        if (!cursorChanged) {
+        if (!cursorChanged && canvasRef.current) {
           canvasRef.current.style.cursor = "default";
         }
       }
@@ -483,7 +480,7 @@ const Canvas = () => {
       selectedEdge,
       isResizing,
       isDragging,
-      selectedPolygonIndex,
+      selectedPolygonLabelIndex,
       polygons,
       scaleFactor,
       startPos,
@@ -493,7 +490,7 @@ const Canvas = () => {
   );
 
   const handleMouseUp = useCallback(
-    (e) => {
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
       if (e.button === 1 || e.button === 0) {
         e.preventDefault();
         setIsWheelDown(false);
@@ -508,38 +505,35 @@ const Canvas = () => {
   );
 
   const handleCanvasDoubleClick = useCallback(
-    (e) => {
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
       if (clickMode !== "sizeControll") return;
 
       const { x: mouseX, y: mouseY } = getCanvasCoordinates(e);
       let pointFound = false;
 
-      // polygons 상태 업데이트
       setPolygons((prevPolygons) =>
         prevPolygons
           .map((polygon) => {
             const updatedPoints = polygon.points.filter((point) => {
-              const adjustedX = point[0] * img.current.width;
-              const adjustedY = point[1] * img.current.height;
+              const adjustedX = point[0] * img.current!.width;
+              const adjustedY = point[1] * img.current!.height;
 
               const isCloseToMouse =
                 Math.abs(mouseX - adjustedX) < 5 / scaleFactor &&
                 Math.abs(mouseY - adjustedY) < 5 / scaleFactor;
 
               if (isCloseToMouse) {
-                pointFound = true; // 점을 삭제하므로 flag 설정
-                return false; // 삭제할 점은 필터링으로 제거
+                pointFound = true;
+                return false;
               }
               return true;
             });
 
-            // 점이 3개 미만일 경우 해당 폴리곤을 제거
             return updatedPoints.length >= 2 ? { ...polygon, points: updatedPoints } : null;
           })
-          .filter(Boolean)
+          .filter(Boolean) as Polygon[]
       );
 
-      // 점 삭제가 이루어졌을 때마다 바로 캔버스 업데이트
       if (pointFound) {
         drawImageAndPolygons();
       }
@@ -547,15 +541,15 @@ const Canvas = () => {
     [clickMode, scaleFactor, img, getCanvasCoordinates, drawImageAndPolygons]
   );
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files![0];
     if (!file) {
       return;
     }
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const content = e.target.result;
+      const content = e.target!.result as string;
       setFileContent(content);
       processFileContent(content, setLastLabelIndex, setPolygons);
     };
@@ -565,14 +559,14 @@ const Canvas = () => {
   const handleDeletePolygon = () => {
     if (modalPolygonLabelIndex !== null) {
       setPolygons((prev) => prev.filter((polygon) => polygon.labelIndex !== modalPolygonLabelIndex));
-      setSelectedPolygonIndex(null);
+      setSelectedPolygonLabelIndex(null);
       setHoveredPolygonLabelIndex(null);
       setModalPolygonLabelIndex(null);
       setShowModal(false);
     }
   };
 
-  const handleModalInputUpdate = (modalInputValue) => {
+  const handleModalInputUpdate = (modalInputValue: { tag: string; description: string }) => {
     if (modalPolygonLabelIndex !== null) {
       const updatedPolygons = polygons.map((polygon) => {
         if (polygon.labelIndex === modalPolygonLabelIndex) {
@@ -589,17 +583,17 @@ const Canvas = () => {
     setShowModal(false);
   };
 
-  const onPhotoUpload = (photo) => {
-    if (isNaN(modalPolygonLabelIndex)) return;
+  const onPhotoUpload = (photo: string) => {
+    if (isNaN(modalPolygonLabelIndex as number)) return;
     setPhotos((prev) => ({
       ...prev,
-      [modalPolygonLabelIndex]: photo,
+      [modalPolygonLabelIndex!]: photo,
     }));
     setShowModal(false);
   };
 
   const handleZoom = useCallback(
-    (zoomIn) => {
+    (zoomIn: boolean) => {
       const newScaleFactor = zoomIn ? scaleFactor + 0.1 : scaleFactor - 0.1;
       setScaleFactor(newScaleFactor);
       setClickMode((prevMode) => prevMode);
@@ -608,7 +602,7 @@ const Canvas = () => {
   );
 
   const handleWheel = useCallback(
-    (e) => {
+    (e: WheelEvent) => {
       if (e.ctrlKey) {
         e.preventDefault();
 
@@ -617,10 +611,8 @@ const Canvas = () => {
         const zoomAmount = e.deltaY < 0 ? 0.1 : -0.1;
         const newScaleFactor = scaleFactor + zoomAmount;
 
-        // 확대/축소 한계를 설정합니다.
         if (newScaleFactor < 0.1 || newScaleFactor > 10) return;
 
-        // 마우스 위치를 기준으로 startPos 조정
         const newStartPos = {
           x: startPos.x - mouseX * zoomAmount,
           y: startPos.y - mouseY * zoomAmount,
@@ -671,7 +663,7 @@ const Canvas = () => {
         max="1"
         step="0.01"
         value={predictionRange}
-        onChange={(e) => setPredictionRange(e.target.value)}
+        onChange={(e) => setPredictionRange(parseFloat(e.target.value))}
       />
       <button
         type="button"
@@ -680,7 +672,7 @@ const Canvas = () => {
           backgroundColor: clickMode === "polygonMake" ? "lightblue" : "white",
         }}
       >
-        폴리건 만들기(q)
+        폴리곤 만들기(q)
       </button>
       <button
         type="button"
@@ -689,7 +681,7 @@ const Canvas = () => {
           backgroundColor: clickMode === "sizeControll" ? "lightblue" : "white",
         }}
       >
-        폴리건 사이즈 조절(w)
+        폴리곤 사이즈 조절(w)
       </button>
       <button
         onClick={() =>
@@ -709,7 +701,6 @@ const Canvas = () => {
         onClick={handleCanvasClick}
         onDoubleClick={handleCanvasDoubleClick}
         onContextMenu={handleCanvasRightClick}
-        onWheel={handleWheel}
       />
       {showModal && (
         <CanvasModal
@@ -724,17 +715,16 @@ const Canvas = () => {
         />
       )}
       <p>
-        선택된 폴리곤 라벨 인덱스: <span>{selectedPolygonIndex}</span>
+        선택된 폴리곤 라벨 인덱스: <span>{selectedPolygonLabelIndex}</span>
       </p>
       <button onClick={() => handleZoom(true)}>확대</button>
       <button onClick={() => handleZoom(false)}>축소</button>
       <button onClick={logPolygons}>로그 폴리곤</button>
-      {photos[modalPolygonLabelIndex] && (
-        <img src={photos[modalPolygonLabelIndex]} alt="사진" />
+      {photos[modalPolygonLabelIndex!] && (
+        <img src={photos[modalPolygonLabelIndex!]} alt="사진" />
       )}
     </div>
   );
 };
 
 export default Canvas;
-
