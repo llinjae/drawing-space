@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { Point, Polygon, startPosType } from "@/types";
 import CanvasModal from "@/components/CanvasModal";
 import distanceFromPointToLineSegment from "@/utils/distanceFromPointToLineSegment";
 import getColorForPolygon from "@/utils/getColorForPolygon";
@@ -12,8 +13,6 @@ import useDrawImageAndPolygons from "@/hooks/useDrawImageandPolygons";
 import useDrawPolygon from "@/hooks/useDrawPolygon";
 import useSetPredictionRange from "@/hooks/useSetPredictRange";
 
-import { Point, Polygon, StartPosType } from "../types";
-
 const Canvas = () => {
   const [polygons, setPolygons] = useState<Polygon[] | []>([]);
   const [selectedPolygonIndex, setSelectedPolygonIndex] = useState<number | null>(null);
@@ -21,7 +20,7 @@ const Canvas = () => {
   const [scaleFactor, setScaleFactor] = useState(1.0);
   const [currentPolygon, setCurrentPolygon] = useState<[number, number][] | []>([]);
   const [isWheelDown, setIsWheelDown] = useState(false);
-  const [startPos, setStartPos] = useState<StartPosType>({ x: 0, y: 0 });
+  const [startPos, setStartPos] = useState<startPosType>({ x: 0, y: 0 });
   const [fileContent, setFileContent] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [modalPos, setModalPos] = useState({ x: 0, y: 0 });
@@ -110,22 +109,22 @@ const Canvas = () => {
             // 화면의 너비와 높이 가져오기
             const maxWidth = window.innerWidth;
             const maxHeight = window.innerHeight;
-  
+
             // 이미지와 화면 크기 비교하여 스케일링 팩터 계산
             const imgWidth = img.current.width;
             const imgHeight = img.current.height;
-  
+
             const widthRatio = maxWidth / imgWidth;
             const heightRatio = maxHeight / imgHeight;
-            const scalingFactor = Math.min(widthRatio, heightRatio, 1); // 1보다 크지 않도록 제한
-  
+            const scalingFactor = Math.min(widthRatio, heightRatio, 1);
+
             // 캔버스 크기 설정
             canvasRef.current.width = imgWidth * scalingFactor;
             canvasRef.current.height = imgHeight * scalingFactor;
-  
+
             // 스케일링 팩터 상태 업데이트
             setScaleFactor(scalingFactor);
-  
+
             // 이미지 및 폴리곤 그리기
             drawImageAndPolygons();
           }
@@ -164,7 +163,7 @@ const Canvas = () => {
         // 이미지 크기로 정규화
         const x = canvasX / img.current.width;
         const y = canvasY / img.current.height;
-        
+
         // 현재 폴리곤에 점 추가
         setCurrentPolygon((prev) => [...prev, [x, y]]);
 

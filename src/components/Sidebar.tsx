@@ -1,8 +1,6 @@
-import React, { useState } from 'react'
+import React from "react";
 
 const Sidebar = ({ toggleSidebarWidth }) => {
-  const [toggle, setToggle] = useState(false);
-  
   return (
     <div
       style={{
@@ -11,9 +9,10 @@ const Sidebar = ({ toggleSidebarWidth }) => {
         padding: "10px",
       }}
     >
-      <button onClick={toggleSidebarWidth}>토글 버튼</button>
+      <button onClick={toggleSidebarWidth}>토글 사이드바 너비</button>
+      {/* 기타 사이드바 내용 */}
     </div>
-  )
-}
+  );
+};
 
-export default Sidebar
+export default Sidebar;

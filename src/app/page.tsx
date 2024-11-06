@@ -1,35 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 
+import Canvas from "@/components/Canvas";
 import Sidebar from "@/components/Sidebar";
 
-import Canvas from "../components/Canvas";
-
-const MOCK = {
-  "0": "0.0 0.033649 0.066859 0.091074 0.066859 0.091275 0.071134 0.040701 0.071704 0.040701 0.074554 0.033649 0.074554 0.033649 0.067999",
-  "1": "1.0 0.033716 0.076681 0.042044 0.076681 0.042044 0.084850 0.033716 0.085040 0.033850 0.077251",
-  "2": "3.0 0.042313 0.073641 0.049970 0.073641 0.049970 0.098149 0.035059 0.098339 0.035328 0.086370 0.042313 0.086180 0.042313 0.074211",
-  "3": "4.0 0.050776 0.073641 0.069850 0.073831 0.069850 0.086180 0.060850 0.086180 0.060582 0.098149 0.050776 0.097959 0.050910 0.074021",
-  "4": "5.0 0.061522 0.087890 0.069850 0.087890 0.069850 0.098149 0.061388 0.098149 0.061522 0.088650",
-  "5": "7.0 0.077238 0.082760 0.090940 0.082950 0.090940 0.098339 0.070791 0.098339 0.070253 0.073641 0.077104 0.073641 0.077104 0.083140",
-  "6": "8.0 0.078179 0.073831 0.085298 0.073641 0.085164 0.081241 0.077910 0.081051 0.078179 0.074211",
-  "7": "9.0 0.086104 0.073641 0.091074 0.073641 0.091074 0.081810 0.085970 0.081810 0.086104 0.074021",
-};
 export default function Page() {
   const [sidebarWidth, setSidebarWidth] = useState(200);
 
   const toggleSidebarWidth = () => {
     setSidebarWidth((prevWidth) => (prevWidth === 200 ? 64 : 200));
   };
-  
+
   return (
-    <div style={{
-      width: "100%",
-      height: "100vh",
-      display: "grid",
-      gridTemplateColumns: `${sidebarWidth}px auto`,
-    }}>
+    <div
+      style={{
+        width: "100%",
+        height: "100vh",
+        display: "grid",
+        gridTemplateColumns: `${sidebarWidth}px auto`,
+      }}
+    >
       <Sidebar toggleSidebarWidth={toggleSidebarWidth} />
       <Canvas />
     </div>
