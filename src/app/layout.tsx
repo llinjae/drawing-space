@@ -1,6 +1,6 @@
-import "./globals.css";
-
 import { Pretendard } from "../../public/fonts";
+
+import "./globals.css";
 
 export const metadata = {
   title: "UPSIGHT - 업사이트",
@@ -14,9 +14,10 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = async ({ children }) => {
   return (
     <html lang="ko">
-      <body className={Pretendard.className}>
-        {children}
-      </body>
+      <head>
+        <script async src="https://docs.opencv.org/master/opencv.js" type="text/javascript"></script>
+      </head>
+      <body className={Pretendard.className}>{children}</body>
     </html>
   );
 };
