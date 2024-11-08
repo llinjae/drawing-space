@@ -1,10 +1,18 @@
-const drawCurrentPolygon = (currentPolygon, ctx, canvas, scaleFactor) => {
+const drawCurrentPolygon = (
+  currentPolygon,
+  ctx,
+  drawWidth,
+  drawHeight,
+  offsetX,
+  offsetY,
+  scaleFactor
+) => {
   if (currentPolygon.length > 0) {
     ctx.beginPath();
 
     currentPolygon.forEach(([x, y], index) => {
-      const adjustedX = x * canvas.width;
-      const adjustedY = y * canvas.height;
+      const adjustedX = x * drawWidth + offsetX;
+      const adjustedY = y * drawHeight + offsetY;
 
       if (index === 0) {
         ctx.moveTo(adjustedX, adjustedY);
@@ -12,7 +20,7 @@ const drawCurrentPolygon = (currentPolygon, ctx, canvas, scaleFactor) => {
         ctx.lineTo(adjustedX, adjustedY);
       }
 
-      // 꼭지점에 원 그리기
+      // 꼭지점 그리기
       ctx.beginPath();
       ctx.arc(adjustedX, adjustedY, 5 / scaleFactor, 0, 2 * Math.PI);
       ctx.fillStyle = "red";
@@ -20,7 +28,7 @@ const drawCurrentPolygon = (currentPolygon, ctx, canvas, scaleFactor) => {
     });
 
     ctx.strokeStyle = "red";
-    ctx.lineWidth = 2 / scaleFactor;
+    ctx.lineWidth = 2;
     ctx.stroke();
   }
 };

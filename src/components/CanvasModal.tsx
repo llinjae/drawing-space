@@ -31,7 +31,7 @@ const photoMountStyle = css`
 `;
 
 const CanvasModal = ({ modalPos, onDelete, onModalInputUpdate, setShowModal, currentData, onPhotoUpload }) => {
-  const photoRef = useRef<HTMLInputElement>(null);
+  const photoRef = useRef(null);
   const modalRef = useRef();
   const [modalInputValue, setModalInputValue] = useState({ tag: "", description: "" });
 
@@ -67,7 +67,7 @@ const CanvasModal = ({ modalPos, onDelete, onModalInputUpdate, setShowModal, cur
   };
 
   return (
-    <div ref={modalRef} css={[ModalStyle(modalPos)]}>
+    <div ref={modalRef} css={ModalStyle(modalPos)}>
       <input
         type="text"
         name="tag"

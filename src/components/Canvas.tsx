@@ -13,7 +13,7 @@ import useDrawImageAndPolygons from "@/hooks/useDrawImageandPolygons";
 import useDrawPolygon from "@/hooks/useDrawPolygon";
 import useSetPredictionRange from "@/hooks/useSetPredictRange";
 
-const Canvas = () => {
+const Canvas = ({ sidebarWidth }) => {
   const [polygons, setPolygons] = useState<Polygon[] | []>([]);
   const [selectedPolygonIndex, setSelectedPolygonIndex] = useState<number | null>(null);
   const [predictionRange, setPredictionRange] = useState(0.5);
@@ -57,10 +57,7 @@ const Canvas = () => {
     selectedPolygonIndex,
     modalPolygonLabelIndex,
     hoveredPolygonLabelIndex,
-    img,
-    canvasRef,
     scaleFactor,
-    startPos
   );
 
   const drawImageAndPolygons = useDrawImageAndPolygons(
@@ -77,20 +74,16 @@ const Canvas = () => {
   useEffect(() => {
     const resizeCanvas = () => {
       const canvas = canvasRef.current;
-      if (canvas) {
-        // 캔버스의 표시 크기 (CSS 크기)를 가져옵니다.
-        const width = canvas.clientWidth;
-        const height = canvas.clientHeight;
-  
-        // 캔버스의 내부 크기를 CSS 크기와 동일하게 설정합니다.
-        canvas.width = width;
-        canvas.height = height;
-  
+      const container = containerRef.current;
+      
+      if (canvas && container) {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        
         drawImageAndPolygons();
       }
     };
   
-    // 초기 설정 및 리사이즈 이벤트에 대응합니다.
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
   
@@ -157,17 +150,41 @@ const Canvas = () => {
   const getCanvasCoordinates = useCallback(
     (e) => {
       const canvas = canvasRef.current;
-      if (!canvas) return { x: 0, y: 0 };
+      const imgEl = img.current;
+      if (!canvas || !imgEl) return { x: 0, y: 0 };
   
       const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
   
-      // 마우스 좌표를 캔버스 좌표로 변환 (startPos와 scaleFactor 고려)
-      const x = (e.clientX - rect.left - startPos.x) / scaleFactor;
-      const y = (e.clientY - rect.top - startPos.y) / scaleFactor;
+      // 스케일링과 이동을 고려하여 이미지 좌표로 변환
+      const x = (mouseX - startPos.x) / scaleFactor;
+      const y = (mouseY - startPos.y) / scaleFactor;
   
-      return { x, y };
+      // 이미지와 캔버스의 크기를 기반으로 drawWidth, drawHeight 계산
+      const imgAspectRatio = imgEl.width / imgEl.height;
+      const canvasAspectRatio = canvas.width / canvas.height;
+  
+      let drawWidth, drawHeight;
+  
+      if (canvasAspectRatio > imgAspectRatio) {
+        drawHeight = canvas.height;
+        drawWidth = drawHeight * imgAspectRatio;
+      } else {
+        drawWidth = canvas.width;
+        drawHeight = drawWidth / imgAspectRatio;
+      }
+  
+      const offsetX = (canvas.width - drawWidth) / 2;
+      const offsetY = (canvas.height - drawHeight) / 2;
+  
+      // 이미지 내부 좌표로 변환
+      const imgX = ((x - offsetX) / drawWidth) * imgEl.width;
+      const imgY = ((y - offsetY) / drawHeight) * imgEl.height;
+  
+      return { x: imgX, y: imgY };
     },
-    [startPos, scaleFactor]
+    [canvasRef, img, startPos, scaleFactor]
   );
   
 
@@ -242,15 +259,25 @@ const Canvas = () => {
   
       if (!canvasRef.current || !img.current) return;
   
-      const { x: mouseX, y: mouseY } = getCanvasCoordinates(e);
+      const canvasRect = canvasRef.current.getBoundingClientRect();
+  
+      const canvasOffsetX = canvasRect.left + window.scrollX;
+      const canvasOffsetY = canvasRect.top + window.scrollY;
+  
+      // 마우스의 화면 좌표를 그대로 사용
+      const modalX = e.clientX + window.scrollX;
+      const modalY = e.clientY + window.scrollY;
+  
+      // 이미지 좌표계의 마우스 위치
+      const { x: imgMouseX, y: imgMouseY } = getCanvasCoordinates(e);
   
       let foundPolygonLabelIndex = null;
   
       polygons.forEach((polygon) => {
         if (
           isMouseInPolygon(
-            mouseX,
-            mouseY,
+            imgMouseX,
+            imgMouseY,
             polygon,
             canvasRef,
             scaleFactor,
@@ -265,22 +292,23 @@ const Canvas = () => {
       if (foundPolygonLabelIndex !== null) {
         setModalPolygonLabelIndex(foundPolygonLabelIndex);
   
+        // 모달 위치를 화면 좌표로 설정
         setModalPos({
-          x: mouseX * scaleFactor,
-          y: mouseY * scaleFactor,
+          x: modalX - sidebarWidth,
+          y: modalY,
         });
         setShowModal(true);
       } else {
         setShowModal(false);
         setModalPolygonLabelIndex(null);
       }
-  
       if (clickMode === "polygonMake") {
         setCurrentPolygon([]);
       }
     },
     [clickMode, polygons, scaleFactor, startPos, img, getCanvasCoordinates]
   );
+  
 
   const handleMouseDown = useCallback(
     (e) => {
@@ -431,12 +459,12 @@ const Canvas = () => {
       if (isWheelDown) {
         const deltaX = e.clientX - dragStart.current.x;
         const deltaY = e.clientY - dragStart.current.y;
-        const newOffset = {
-          x: startPos.x + deltaX,
-          y: startPos.y + deltaY,
-        };
-        setStartPos(newOffset);
+        setStartPos((prevStartPos) => ({
+          x: prevStartPos.x + deltaX,
+          y: prevStartPos.y + deltaY,
+        }));
         dragStart.current = { x: e.clientX, y: e.clientY };
+        drawImageAndPolygons();
         e.preventDefault();
       } else if (selectedEdge && isResizing) {
         const { x: mouseX, y: mouseY } = getCanvasCoordinates(e);
@@ -699,7 +727,7 @@ const Canvas = () => {
         width: "100%",
         height: "100vh",
         position: "relative",
-        overflow: "hidden",
+        overflow: "scroll",
       }}>
       <input type="file" onChange={handleFileChange} />
       <p>
@@ -754,7 +782,7 @@ const Canvas = () => {
           borderRadius: "10px",
           display: "block",
           width: "100%",
-          height: "auto"
+          height: "100%"
           // transformOrigin: "top left",
           // position: "absolute",
           // top: "0",
