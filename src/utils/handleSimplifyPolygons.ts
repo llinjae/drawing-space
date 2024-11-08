@@ -1,4 +1,4 @@
-import { Polygon } from "@/app/type";
+import { Polygon } from "@/types";
 import { simplify } from "@turf/turf";
 
 const handleSimplifyPolygons = (

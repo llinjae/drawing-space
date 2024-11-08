@@ -19,10 +19,11 @@ export default function Page() {
         height: "100vh",
         display: "grid",
         gridTemplateColumns: `${sidebarWidth}px auto`,
+        transition: "grid-template-columns 0.3s ease",
       }}
     >
       <Sidebar toggleSidebarWidth={toggleSidebarWidth} />
-      <Canvas />
+      <Canvas sidebarWidth={sidebarWidth} />
     </div>
   );
 }

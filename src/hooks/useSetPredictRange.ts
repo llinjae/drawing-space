@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import { useSetPredictionRangeProps } from "@/app/type";
+import { useSetPredictionRangeProps } from "@/types";
 
 const useSetPredictionRange = ({
   polygons,

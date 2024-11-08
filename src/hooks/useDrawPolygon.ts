@@ -9,7 +9,9 @@ const useDrawPolygon = (
   modalPolygonIndex,
   hoveredPolygonIndex,
   img,
-  scaleFactor
+  canvasRef,
+  scaleFactor,
+  startPos
 ) => {
   return useCallback(
     (polygon, ctx) => {
@@ -53,13 +55,8 @@ const useDrawPolygon = (
         const adjustedX = x * img.current.width;
         const adjustedY = y * img.current.height;
         ctx.beginPath();
-        ctx.arc(
-          adjustedX,
-          adjustedY,
-          Math.min(Math.max(5 / scaleFactor, 3), 100),
-          0,
-          2 * Math.PI
-        );
+        const pointRadius = 5 / scaleFactor;
+        ctx.arc(adjustedX, adjustedY, pointRadius, 0, 2 * Math.PI);
         ctx.fill();
       });
 
@@ -84,7 +81,8 @@ const useDrawPolygon = (
       selectedPolygonIndex,
       modalPolygonIndex,
       hoveredPolygonIndex,
-      img,
+      canvasRef,
+      startPos,
     ]
   );
 };
